@@ -1,0 +1,35 @@
+{
+  "records": {
+    "rec_id": ["RecID", " Record    "],
+    "age": "Age",
+    "parity": "Parity",
+    "abortions": "Abortions",
+    "gestation": ["Gestation", " Gestation "],
+    "rec_time": ["Rectime", "Rec. time"],
+    "weight": "Weight",
+    "hypertension": "Hypertension",
+    "diabetes": "Diabetes",
+    "placental_position": "Placental_position",
+    "bleeding_first_trimester": "Bleeding_first_trimester",
+    "bleeding_second_trimester": "Bleeding_second_trimester",
+    "funneling": "Funneling",
+    "smoker": "Smoker",
+    "channel_1": "1",
+    "channel_1_filt_0.08_4_hz": "1_DOCFILT-4-0.08-4",
+    "channel_1_filt_0.3_3_hz": "1_DOCFILT-4-0.3-3",
+    "channel_1_filt_0.3_4_hz": "1_DOCFILT-4-0.3-4",
+    "channel_2": "2",
+    "channel_2_filt_0.08_4_hz": "2_DOCFILT-4-0.08-4",
+    "channel_2_filt_0.3_3_hz": "2_DOCFILT-4-0.3-3",
+    "channel_2_filt_0.3_4_hz": "2_DOCFILT-4-0.3-4",
+    "channel_3": "3",
+    "channel_3_filt_0.08_4_hz": "3_DOCFILT-4-0.08-4",
+    "channel_3_filt_0.3_3_hz": "3_DOCFILT-4-0.3-3",
+    "channel_3_filt_0.3_4_hz": "3_DOCFILT-4-0.3-4",
+    "group": "   Group   ",
+    "premature": " Premature ",
+    "early": " Early ",
+    "gestation_at_rec_time": " Rec. time "
+  }
+}
+
