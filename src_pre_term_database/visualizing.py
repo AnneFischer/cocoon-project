@@ -666,3 +666,99 @@ def plot_ehg_data(path_to_data: str, rec_id: str,
 
     fig.update_xaxes(title_text=f'{time_units}', tick0=0, dtick=dtick, **kwargs)
     fig.show()
+
+
+def plot_ehg_data_filtered(path_to_data: str, rec_id: str, df_signals: pd.DataFrame,
+                           time_units: str, channel_names, df_static_information: pd.DataFrame, **kwargs):
+    """"Plot the EHG signal data of one patient (rec_id).
+
+    Parameters
+    ----------
+    path_to_data : str
+        Path to folder with the term-preterm database files.
+    rec_id : str
+        Name of the record id.
+    time_units : str
+        The x axis unit. Allowed options are: 'samples', 'seconds', 'minutes',
+        and 'hours'.
+    df_static_information : pd.DataFrame
+        Dataframe that contains the demographic data of the record id.
+    kwargs:
+        Dictionary of parameters to pass to make_subplots.update_xaxes()
+
+    Returns
+    -------
+    type : plotly.graph_objs
+        Line plot of the EHG signal data of one record id.
+    """
+    data_path = Path(f'{path_to_data}')
+    path_to_signals = data_path / "tpehgdb"
+
+    # TO DO: Write functionality to input a flexible number of channels you want to plot and create
+    # the color codes and grid accordingly
+    colors = ['rgb(67,67,67)', 'rgb(115,115,115)', 'rgb(49,130,189)', 'rgb(189,189,189)',
+              'rgb(67,67,67)', 'rgb(115,115,115)', 'rgb(49,130,189)', 'rgb(189,189,189)',
+              'rgb(67,67,67)', 'rgb(115,115,115)', 'rgb(49,130,189)', 'rgb(189,189,189)']
+
+    channel_data = ['channel_1', 'channel_1_filt_0.08_4_hz', 'channel_1_filt_0.3_3_hz', 'channel_1_filt_0.3_4_hz',
+                    'channel_2', 'channel_2_filt_0.08_4_hz', 'channel_2_filt_0.3_3_hz', 'channel_2_filt_0.3_4_hz',
+                    'channel_3', 'channel_3_filt_0.08_4_hz', 'channel_3_filt_0.3_3_hz', 'channel_3_filt_0.3_4_hz']
+
+    min_value_signal = -0.1
+    max_value_signal = 0.1
+
+    line_size = 2
+    grid = [(1, 1), (2, 1), (1, 2), (2, 2), (3, 1), (4, 1), (3, 2), (4, 2), (5, 1), (6, 1), (5, 2), (6, 2)]
+
+    # This record object contains all signal data and its properties (such as sampling rate, etc.) of
+    # one record id.
+    record = wfdb.rdrecord(f'{path_to_signals}/{rec_id}')
+    rec_id = int(record.record_name.split('tpehg')[1])
+
+    record_length = len(df_signals.query('rec_id==@rec_id').reset_index(drop=True))
+
+    # The preterm_term_gestation variable contains the gestation length
+    preterm_term_gestation = df_static_information.query('rec_id==@rec_id')['gestation'].iloc[0]
+    preterm_term_rec_moment = df_static_information.query('rec_id==@rec_id')['gestation_at_rec_time'].iloc[0]
+
+    # Construct time indices for the x-axis
+    if time_units == 'samples':
+        t = np.linspace(0, record_length - 1, record_length)
+    else:
+        downsample_factor = {'seconds': record.fs, 'minutes': record.fs * 60,
+                             'hours': record.fs * 3600}
+        t = np.linspace(0, record_length - 1, record_length) / downsample_factor[time_units]
+
+    # We plot each channel in a separate subplot
+    fig = make_subplots(rows=6, cols=2,
+                        subplot_titles=channel_names)
+
+    for index, name in enumerate(channel_names):
+        fig.add_trace(go.Scatter(x=t, y=df_signals[df_signals['rec_id'] == rec_id][f'{name}'].values, mode='lines',
+                                 name=name, line=dict(color=colors[index], width=line_size),
+                                 connectgaps=True),
+                      row=grid[index][0],
+                      col=grid[index][1])
+        fig.update_yaxes(title_text=record.units[index], range=[min_value_signal, max_value_signal])
+
+    fig.update_layout(template='plotly_white', height=1100, showlegend=False,
+                      title=dict(
+                          text=f'<b>EHG data of patient {rec_id}, gestation: {preterm_term_gestation} wks, '
+                               f'rec_moment: {preterm_term_rec_moment} wks</b>',
+                          x=0.5,
+                          y=0.98,
+                          font=dict(
+                              family="Arial",
+                              size=20,
+                              color='#000000'
+                          )
+                      )
+                      )
+    # dtick indicates the tick step and is set in such way that we have approx. 5 ticks on the x axis
+    if 'range' in kwargs:
+        dtick = int(np.diff(kwargs['range']) / 5)
+    else:
+        dtick = int(max(t) / 5)
+
+    fig.update_xaxes(title_text=f'{time_units}', tick0=0, dtick=dtick, **kwargs)
+    fig.show()

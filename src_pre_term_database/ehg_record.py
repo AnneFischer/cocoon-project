@@ -2,7 +2,7 @@ import scipy.io
 import numpy as np
 import json
 from src_pre_term_database.data_processing_and_feature_engineering import butter_bandpass_filter
-from typing import List, Dict
+from typing import Dict
 
 
 class EHGRecord:

@@ -7,15 +7,12 @@ import os
 from re import match
 import wfdb
 from tqdm.auto import tqdm
-import logging
 from utils import rename_columns_from_mappings, read_settings, convert_columns_to_numeric
 
 
 settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/settings'
 
 file_paths = read_settings(settings_path, 'file_paths')
-
-#logging.basicConfig(filename='example.log', level=logging.INFO)
 
 SIGNAL_COLUMN_NAMES = ['1', '1_DOCFILT-4-0.08-4', '1_DOCFILT-4-0.3-3', '1_DOCFILT-4-0.3-4',
                       '2', '2_DOCFILT-4-0.08-4', '2_DOCFILT-4-0.3-3', '2_DOCFILT-4-0.3-4',
