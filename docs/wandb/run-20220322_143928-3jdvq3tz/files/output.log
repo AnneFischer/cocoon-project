@@ -1,0 +1,7 @@
+
+[32m[I 2022-03-22 14:39:42,481][39m A new study created in memory with name: no-name-23531425-a628-4055-b7e2-36ab936c7878
+Params: {'learning_rate': 0.008688283420293, 'num_hidden_units_per_layer': 96, 'weight_decay': 0.0005578580327355344, 'kernel_size': 7, 'num_epochs': 40, 'drop_out': 0.40383286984480193, 'batch_size': 10, 'reduced_seq_length': 70, 'num_levels': 4, 'stride': 1, 'pos_weight': tensor([6.8261])}
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0

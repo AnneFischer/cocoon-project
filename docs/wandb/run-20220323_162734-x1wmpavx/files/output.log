@@ -1,0 +1,34 @@
+Epoch [1/35] Training loss: 1.3507	 Validation loss: 1.1585
+--------------------------------------------------
+Epoch [2/35] Training loss: 1.2393	 Validation loss: 1.1737
+--------------------------------------------------
+Epoch [3/35] Training loss: 1.1652	 Validation loss: 1.1682
+--------------------------------------------------
+Epoch [4/35] Training loss: 1.1494	 Validation loss: 1.1770
+--------------------------------------------------
+Epoch [5/35] Training loss: 1.1351	 Validation loss: 1.1804
+--------------------------------------------------
+Epoch [6/35] Training loss: 1.0806	 Validation loss: 1.1726
+--------------------------------------------------
+Epoch [7/35] Training loss: 1.0760	 Validation loss: 1.1743
+--------------------------------------------------
+Epoch [8/35] Training loss: 1.0615	 Validation loss: 1.1758
+--------------------------------------------------
+Epoch [9/35] Training loss: 1.0237	 Validation loss: 1.1752
+--------------------------------------------------
+Epoch [10/35] Training loss: 1.0104	 Validation loss: 1.1762
+--------------------------------------------------
+Epoch [11/35] Training loss: 0.9857	 Validation loss: 1.1767
+--------------------------------------------------
+Epoch [12/35] Training loss: 0.9249	 Validation loss: 1.1811
+--------------------------------------------------
+Epoch [13/35] Training loss: 0.8471	 Validation loss: 1.2097
+--------------------------------------------------
+Epoch [14/35] Training loss: 0.8824	 Validation loss: 1.2000
+--------------------------------------------------
+[32m[I 2022-03-23 16:33:22,101][39m A new study created in memory with name: no-name-fafbebc1-6357-4134-b2d5-85a498673b76
+Params: {'learning_rate': 0.020531333696453144, 'num_hidden_units_per_layer': 96, 'weight_decay': 0.0043444759975392894, 'kernel_size': 9, 'num_epochs': 35, 'drop_out': 0.44288959628300917, 'batch_size': 10, 'reduced_seq_length': 180, 'num_levels': 5, 'stride': 1, 'pos_weight': tensor([6.8261])}
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0

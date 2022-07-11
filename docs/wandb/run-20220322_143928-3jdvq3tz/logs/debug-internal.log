@@ -1,0 +1,200 @@
+2022-03-22 14:39:34,068 INFO    MainThread:92882 [internal.py:wandb_internal():92] W&B internal server running at pid: 92882, started at: 2022-03-22 14:39:34.068375
+2022-03-22 14:39:34,069 INFO    WriterThread:92882 [datastore.py:open_for_write():77] open: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/run-3jdvq3tz.wandb
+2022-03-22 14:39:34,071 DEBUG   SenderThread:92882 [sender.py:send():235] send: header
+2022-03-22 14:39:34,071 DEBUG   SenderThread:92882 [sender.py:send():235] send: run
+2022-03-22 14:39:34,257 INFO    SenderThread:92882 [dir_watcher.py:__init__():169] watching files in: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files
+2022-03-22 14:39:34,257 INFO    SenderThread:92882 [sender.py:_start_run_threads():812] run started: 3jdvq3tz with start time 1647956373
+2022-03-22 14:39:34,257 DEBUG   SenderThread:92882 [sender.py:send():235] send: summary
+2022-03-22 14:39:34,257 INFO    SenderThread:92882 [sender.py:_save_file():947] saving file wandb-summary.json with policy end
+2022-03-22 14:39:34,261 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: check_version
+2022-03-22 14:39:34,261 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: check_version
+2022-03-22 14:39:34,319 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: run_start
+2022-03-22 14:39:34,321 DEBUG   HandlerThread:92882 [meta.py:__init__():37] meta init
+2022-03-22 14:39:34,321 DEBUG   HandlerThread:92882 [meta.py:__init__():51] meta init done
+2022-03-22 14:39:34,321 DEBUG   HandlerThread:92882 [meta.py:probe():211] probe
+2022-03-22 14:39:34,322 DEBUG   HandlerThread:92882 [meta.py:_setup_git():201] setup git
+2022-03-22 14:39:34,343 DEBUG   HandlerThread:92882 [meta.py:_setup_git():208] setup git done
+2022-03-22 14:39:34,344 DEBUG   HandlerThread:92882 [meta.py:_save_pip():55] save pip
+2022-03-22 14:39:34,344 DEBUG   HandlerThread:92882 [meta.py:_save_pip():69] save pip done
+2022-03-22 14:39:34,344 DEBUG   HandlerThread:92882 [meta.py:_save_conda():76] save conda
+2022-03-22 14:39:35,261 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_created():217] file/dir created: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/conda-environment.yaml
+2022-03-22 14:39:35,261 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_created():217] file/dir created: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/requirements.txt
+2022-03-22 14:39:35,261 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_created():217] file/dir created: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/wandb-summary.json
+2022-03-22 14:39:36,516 DEBUG   HandlerThread:92882 [meta.py:_save_conda():86] save conda done
+2022-03-22 14:39:36,517 DEBUG   HandlerThread:92882 [meta.py:probe():249] probe done
+2022-03-22 14:39:36,568 DEBUG   SenderThread:92882 [sender.py:send():235] send: files
+2022-03-22 14:39:36,568 INFO    SenderThread:92882 [sender.py:_save_file():947] saving file wandb-metadata.json with policy now
+2022-03-22 14:39:36,576 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: stop_status
+2022-03-22 14:39:36,576 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: stop_status
+2022-03-22 14:39:36,581 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: pause
+2022-03-22 14:39:36,581 INFO    HandlerThread:92882 [handler.py:handle_request_pause():659] stopping system metrics thread
+2022-03-22 14:39:36,713 DEBUG   SenderThread:92882 [sender.py:send():235] send: telemetry
+2022-03-22 14:39:36,714 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:39:37,093 INFO    Thread-11 :92882 [upload_job.py:push():137] Uploaded file /var/folders/16/mg5_s98x3yd90kq7mmfmk3pr0000gn/T/tmpg3cpce0awandb/16lx694g-wandb-metadata.json
+2022-03-22 14:39:37,266 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/conda-environment.yaml
+2022-03-22 14:39:37,267 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_created():217] file/dir created: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/output.log
+2022-03-22 14:39:37,268 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_created():217] file/dir created: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/wandb-metadata.json
+2022-03-22 14:39:39,083 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: resume
+2022-03-22 14:39:39,083 INFO    HandlerThread:92882 [handler.py:handle_request_resume():650] starting system metrics thread
+2022-03-22 14:39:39,085 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: pause
+2022-03-22 14:39:39,085 INFO    HandlerThread:92882 [handler.py:handle_request_pause():659] stopping system metrics thread
+2022-03-22 14:39:39,192 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:39:40,321 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: resume
+2022-03-22 14:39:40,321 INFO    HandlerThread:92882 [handler.py:handle_request_resume():650] starting system metrics thread
+2022-03-22 14:39:40,322 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: pause
+2022-03-22 14:39:40,322 INFO    HandlerThread:92882 [handler.py:handle_request_pause():659] stopping system metrics thread
+2022-03-22 14:39:40,430 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:39:41,599 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: resume
+2022-03-22 14:39:41,599 INFO    HandlerThread:92882 [handler.py:handle_request_resume():650] starting system metrics thread
+2022-03-22 14:39:41,602 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: pause
+2022-03-22 14:39:41,602 INFO    HandlerThread:92882 [handler.py:handle_request_pause():659] stopping system metrics thread
+2022-03-22 14:39:41,708 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:39:42,005 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: resume
+2022-03-22 14:39:42,005 INFO    HandlerThread:92882 [handler.py:handle_request_resume():650] starting system metrics thread
+2022-03-22 14:39:42,011 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: pause
+2022-03-22 14:39:42,011 INFO    HandlerThread:92882 [handler.py:handle_request_pause():659] stopping system metrics thread
+2022-03-22 14:39:42,112 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:39:42,475 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: resume
+2022-03-22 14:39:42,476 INFO    HandlerThread:92882 [handler.py:handle_request_resume():650] starting system metrics thread
+2022-03-22 14:39:42,513 DEBUG   SenderThread:92882 [sender.py:send():235] send: telemetry
+2022-03-22 14:39:42,514 DEBUG   SenderThread:92882 [sender.py:send():235] send: config
+2022-03-22 14:39:42,514 DEBUG   SenderThread:92882 [sender.py:send():235] send: config
+2022-03-22 14:39:42,514 DEBUG   SenderThread:92882 [sender.py:send():235] send: config
+2022-03-22 14:39:42,514 DEBUG   SenderThread:92882 [sender.py:send():235] send: config
+2022-03-22 14:39:42,516 DEBUG   SenderThread:92882 [sender.py:send():235] send: config
+2022-03-22 14:39:45,302 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/output.log
+2022-03-22 14:39:51,721 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: stop_status
+2022-03-22 14:39:51,722 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: stop_status
+2022-03-22 14:40:05,393 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/config.yaml
+2022-03-22 14:40:06,888 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: stop_status
+2022-03-22 14:40:06,888 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: stop_status
+2022-03-22 14:40:11,675 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:40:17,442 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/output.log
+2022-03-22 14:40:22,112 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: stop_status
+2022-03-22 14:40:22,112 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: stop_status
+2022-03-22 14:40:37,314 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: stop_status
+2022-03-22 14:40:37,315 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: stop_status
+2022-03-22 14:40:42,948 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:40:46,249 DEBUG   SenderThread:92882 [sender.py:send():235] send: telemetry
+2022-03-22 14:40:46,254 DEBUG   SenderThread:92882 [sender.py:send():235] send: telemetry
+2022-03-22 14:40:46,254 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: partial_history
+2022-03-22 14:40:46,577 INFO    Thread-7  :92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/output.log
+2022-03-22 14:40:47,050 DEBUG   SenderThread:92882 [sender.py:send():235] send: exit
+2022-03-22 14:40:47,050 INFO    SenderThread:92882 [sender.py:send_exit():371] handling exit code: 0
+2022-03-22 14:40:47,057 INFO    SenderThread:92882 [sender.py:send_exit():373] handling runtime: 67
+2022-03-22 14:40:47,060 INFO    SenderThread:92882 [sender.py:_save_file():947] saving file wandb-summary.json with policy end
+2022-03-22 14:40:47,062 INFO    SenderThread:92882 [sender.py:send_exit():379] send defer
+2022-03-22 14:40:47,065 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,065 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 0
+2022-03-22 14:40:47,066 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,066 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 0
+2022-03-22 14:40:47,066 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 1
+2022-03-22 14:40:47,068 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:47,069 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,069 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:47,069 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 1
+2022-03-22 14:40:47,114 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,114 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 1
+2022-03-22 14:40:47,115 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 2
+2022-03-22 14:40:47,115 DEBUG   SenderThread:92882 [sender.py:send():235] send: stats
+2022-03-22 14:40:47,115 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,115 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 2
+2022-03-22 14:40:47,116 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,116 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 2
+2022-03-22 14:40:47,116 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 3
+2022-03-22 14:40:47,116 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,117 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 3
+2022-03-22 14:40:47,117 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,117 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 3
+2022-03-22 14:40:47,117 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 4
+2022-03-22 14:40:47,117 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,117 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 4
+2022-03-22 14:40:47,118 DEBUG   SenderThread:92882 [sender.py:send():235] send: summary
+2022-03-22 14:40:47,118 INFO    SenderThread:92882 [sender.py:_save_file():947] saving file wandb-summary.json with policy end
+2022-03-22 14:40:47,119 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,119 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 4
+2022-03-22 14:40:47,119 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 5
+2022-03-22 14:40:47,119 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,119 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 5
+2022-03-22 14:40:47,119 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,119 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 5
+2022-03-22 14:40:47,183 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:47,309 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 6
+2022-03-22 14:40:47,310 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:47,310 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,311 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 6
+2022-03-22 14:40:47,311 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,311 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 6
+2022-03-22 14:40:47,311 INFO    SenderThread:92882 [dir_watcher.py:finish():283] shutting down directory watcher
+2022-03-22 14:40:47,417 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:47,582 INFO    SenderThread:92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/output.log
+2022-03-22 14:40:47,583 INFO    SenderThread:92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/config.yaml
+2022-03-22 14:40:47,583 INFO    SenderThread:92882 [dir_watcher.py:_on_file_modified():230] file/dir modified: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/wandb-summary.json
+2022-03-22 14:40:47,585 INFO    SenderThread:92882 [dir_watcher.py:finish():313] scan: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files
+2022-03-22 14:40:47,586 INFO    SenderThread:92882 [dir_watcher.py:finish():327] scan save: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/requirements.txt requirements.txt
+2022-03-22 14:40:47,586 INFO    SenderThread:92882 [dir_watcher.py:finish():327] scan save: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/output.log output.log
+2022-03-22 14:40:47,590 INFO    SenderThread:92882 [dir_watcher.py:finish():327] scan save: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/config.yaml config.yaml
+2022-03-22 14:40:47,596 INFO    SenderThread:92882 [dir_watcher.py:finish():327] scan save: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/wandb-summary.json wandb-summary.json
+2022-03-22 14:40:47,597 INFO    SenderThread:92882 [dir_watcher.py:finish():327] scan save: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/conda-environment.yaml conda-environment.yaml
+2022-03-22 14:40:47,597 INFO    SenderThread:92882 [dir_watcher.py:finish():327] scan save: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/wandb-metadata.json wandb-metadata.json
+2022-03-22 14:40:47,597 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 7
+2022-03-22 14:40:47,603 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:47,608 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:47,608 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 7
+2022-03-22 14:40:47,612 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:47,613 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 7
+2022-03-22 14:40:47,615 INFO    SenderThread:92882 [file_pusher.py:finish():145] shutting down file pusher
+2022-03-22 14:40:47,714 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:47,714 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:47,825 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:47,828 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:47,939 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:47,940 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:48,055 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:48,056 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:48,167 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:48,169 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:48,184 INFO    Thread-21 :92882 [upload_job.py:push():137] Uploaded file /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/conda-environment.yaml
+2022-03-22 14:40:48,191 INFO    Thread-18 :92882 [upload_job.py:push():137] Uploaded file /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/output.log
+2022-03-22 14:40:48,193 INFO    Thread-19 :92882 [upload_job.py:push():137] Uploaded file /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/config.yaml
+2022-03-22 14:40:48,193 INFO    Thread-17 :92882 [upload_job.py:push():137] Uploaded file /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/requirements.txt
+2022-03-22 14:40:48,282 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:48,283 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:48,388 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:48,388 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:48,476 INFO    Thread-20 :92882 [upload_job.py:push():137] Uploaded file /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/files/wandb-summary.json
+2022-03-22 14:40:48,492 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:48,493 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:48,600 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:48,602 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:48,686 INFO    Thread-6  :92882 [sender.py:transition_state():392] send defer: 8
+2022-03-22 14:40:48,689 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:48,689 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 8
+2022-03-22 14:40:48,690 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:48,690 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 8
+2022-03-22 14:40:48,712 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:49,595 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 9
+2022-03-22 14:40:49,596 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:49,597 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:49,598 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 9
+2022-03-22 14:40:49,598 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:49,598 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 9
+2022-03-22 14:40:49,599 INFO    SenderThread:92882 [sender.py:transition_state():392] send defer: 10
+2022-03-22 14:40:49,600 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: defer
+2022-03-22 14:40:49,600 INFO    HandlerThread:92882 [handler.py:handle_request_defer():164] handle defer: 10
+2022-03-22 14:40:49,601 DEBUG   SenderThread:92882 [sender.py:send():235] send: final
+2022-03-22 14:40:49,602 DEBUG   SenderThread:92882 [sender.py:send():235] send: footer
+2022-03-22 14:40:49,602 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: defer
+2022-03-22 14:40:49,602 INFO    SenderThread:92882 [sender.py:send_request_defer():388] handle sender defer: 10
+2022-03-22 14:40:49,707 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: poll_exit
+2022-03-22 14:40:49,708 DEBUG   SenderThread:92882 [sender.py:send_request():249] send_request: poll_exit
+2022-03-22 14:40:49,709 INFO    SenderThread:92882 [file_pusher.py:join():150] waiting for file pusher
+2022-03-22 14:40:50,184 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: sampled_history
+2022-03-22 14:40:50,187 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: get_summary
+2022-03-22 14:40:50,189 DEBUG   HandlerThread:92882 [handler.py:handle_request():141] handle_request: shutdown
+2022-03-22 14:40:50,189 INFO    HandlerThread:92882 [handler.py:finish():778] shutting down handler
+2022-03-22 14:40:50,603 INFO    WriterThread:92882 [datastore.py:close():281] close: /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220322_143928-3jdvq3tz/run-3jdvq3tz.wandb
+2022-03-22 14:40:51,078 INFO    SenderThread:92882 [sender.py:finish():1078] shutting down sender
+2022-03-22 14:40:51,079 INFO    SenderThread:92882 [file_pusher.py:finish():145] shutting down file pusher
+2022-03-22 14:40:51,079 INFO    SenderThread:92882 [file_pusher.py:join():150] waiting for file pusher
+2022-03-22 14:40:51,090 INFO    MainThread:92882 [internal.py:handle_exit():82] Internal process exited

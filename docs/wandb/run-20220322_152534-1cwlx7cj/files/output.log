@@ -1,0 +1,47 @@
+Epoch [1/20] Training loss: 8.7465	 Validation loss: 1.2888
+--------------------------------------------------
+Epoch [2/20] Training loss: 1.2393	 Validation loss: 1.1717
+--------------------------------------------------
+Epoch [3/20] Training loss: 1.2468	 Validation loss: 1.1745
+--------------------------------------------------
+Epoch [4/20] Training loss: 1.2673	 Validation loss: 1.2158
+--------------------------------------------------
+Epoch [5/20] Training loss: 1.2563	 Validation loss: 1.1709
+--------------------------------------------------
+Epoch [6/20] Training loss: 1.2906	 Validation loss: 1.1618
+--------------------------------------------------
+Epoch [7/20] Training loss: 1.4817	 Validation loss: 1.1914
+--------------------------------------------------
+Epoch [8/20] Training loss: 1.2525	 Validation loss: 1.2098
+--------------------------------------------------
+Epoch [9/20] Training loss: 1.2236	 Validation loss: 1.1641
+--------------------------------------------------
+Epoch [10/20] Training loss: 1.2879	 Validation loss: 1.1894
+--------------------------------------------------
+Epoch [11/20] Training loss: 1.2280	 Validation loss: 1.1784
+--------------------------------------------------
+Epoch [12/20] Training loss: 1.2321	 Validation loss: 1.1645
+--------------------------------------------------
+Epoch [13/20] Training loss: 1.2197	 Validation loss: 1.1794
+--------------------------------------------------
+Epoch [14/20] Training loss: 1.2613	 Validation loss: 1.1616
+--------------------------------------------------
+Epoch [15/20] Training loss: 1.2229	 Validation loss: 1.1775
+--------------------------------------------------
+Epoch [16/20] Training loss: 1.2096	 Validation loss: 1.1617
+--------------------------------------------------
+Epoch [17/20] Training loss: 1.3087	 Validation loss: 1.1880
+--------------------------------------------------
+Epoch [18/20] Training loss: 1.2716	 Validation loss: 1.1651
+--------------------------------------------------
+Epoch [19/20] Training loss: 1.2238	 Validation loss: 1.1703
+--------------------------------------------------
+[32m[I 2022-03-22 15:31:00,449][39m Trial 12 finished with value: 1.1627806425094604 and parameters: {'learning_rate': 0.003395980168759841, 'num_hidden_units_per_layer': 192, 'weight_decay': 0.006456888830984475, 'kernel_size': 7, 'num_epochs': 20, 'drop_out': 0.35357937436559733, 'batch_size': 30, 'reduced_seq_length': 150}. Best is trial 0 with value: 1.1620822846889496.
+Epoch [20/20] Training loss: 1.2145	 Validation loss: 1.1628
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 0.0016290287559883314, 'num_hidden_units_per_layer': 128, 'weight_decay': 0.006358247240278936, 'kernel_size': 9, 'num_epochs': 40, 'drop_out': 0.37166538813773947, 'batch_size': 10, 'reduced_seq_length': 150, 'num_levels': 4, 'stride': 1, 'pos_weight': tensor([6.8261])}
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0

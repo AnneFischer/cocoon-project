@@ -1,0 +1,89 @@
+Epoch [1/40] Training loss: 1.8694677701
+--------------------------------------------------
+Epoch [2/40] Training loss: 1.2553654077
+--------------------------------------------------
+Epoch [3/40] Training loss: 1.2186690395
+--------------------------------------------------
+Epoch [1/40] Training loss: 1.2045217777
+--------------------------------------------------
+Epoch [2/40] Training loss: 1.2254467979
+--------------------------------------------------
+Epoch [3/40] Training loss: 1.2064668213
+--------------------------------------------------
+Epoch [4/40] Training loss: 1.2134564891
+--------------------------------------------------
+Epoch [5/40] Training loss: 1.2164526582
+--------------------------------------------------
+Epoch [6/40] Training loss: 1.1983946984
+--------------------------------------------------
+Exception in thread NetStatThr:
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/threading.py", line 932, in _bootstrap_inner
+    self.run()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/threading.py", line 870, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 149, in check_network_status
+    status_response = self._interface.communicate_network_status()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface.py", line 125, in communicate_network_status
+    resp = self._communicate_network_status(status)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 397, in _communicate_network_status
+    resp = self._communicate(req, local=True)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 222, in _communicate
+    return self._communicate_async(rec, local=local).get(timeout=timeout)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 227, in _communicate_async
+    raise Exception("The wandb backend process has shutdown")
+Exception: The wandb backend process has shutdown
+Exception in thread ChkStopThr:
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/threading.py", line 932, in _bootstrap_inner
+    self.run()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/threading.py", line 870, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 167, in check_status
+    status_response = self._interface.communicate_stop_status()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface.py", line 114, in communicate_stop_status
+    resp = self._communicate_stop_status(status)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 387, in _communicate_stop_status
+    resp = self._communicate(req, local=True)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 222, in _communicate
+    return self._communicate_async(rec, local=local).get(timeout=timeout)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 227, in _communicate_async
+    raise Exception("The wandb backend process has shutdown")
+Exception: The wandb backend process has shutdown
+Problem at: /var/folders/16/mg5_s98x3yd90kq7mmfmk3pr0000gn/T/ipykernel_85318/2752024895.py 1 <module>
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 954, in init
+    run = wi.init()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 471, in init
+    self._wl._global_run_stack[-1].finish()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 1538, in finish
+    tel.feature.finish = True
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/lib/telemetry.py", line 43, in __exit__
+    self._run._telemetry_callback(self._obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 470, in _telemetry_callback
+    self._telemetry_flush()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 481, in _telemetry_flush
+    self._backend.interface._publish_telemetry(self._telemetry_obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 73, in _publish_telemetry
+    self._publish(rec)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_queue.py", line 49, in _publish
+    raise Exception("The wandb backend process has shutdown")
+Exception: The wandb backend process has shutdown
+[34m[1mwandb[39m[22m: [32m[41mERROR[39m[49m Abnormal program exit
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 951, in init
+    wi.setup(kwargs)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 143, in setup
+    tel.feature.set_init_tags = True
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/lib/telemetry.py", line 43, in __exit__
+    self._run._telemetry_callback(self._obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 470, in _telemetry_callback
+    self._telemetry_flush()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 481, in _telemetry_flush
+    self._backend.interface._publish_telemetry(self._telemetry_obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 73, in _publish_telemetry
+    self._publish(rec)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_queue.py", line 49, in _publish
+    raise Exception("The wandb backend process has shutdown")
+Exception: The wandb backend process has shutdown
+[34m[1mwandb[39m[22m: [32m[41mERROR[39m[49m Abnormal program exit

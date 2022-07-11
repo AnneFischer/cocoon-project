@@ -1,0 +1,24 @@
+{
+    "os": "macOS-10.16-x86_64-i386-64bit",
+    "python": "3.8.8",
+    "heartbeatAt": "2022-03-18T15:37:04.703485",
+    "startedAt": "2022-03-18T15:36:59.587989",
+    "docker": null,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [
+        "-f",
+        "/Users/AFischer/Library/Jupyter/runtime/kernel-046095d7-c2c0-4926-9ccb-677f96ff1728.json"
+    ],
+    "state": "running",
+    "program": "PycharmProjects/cocoon-project/docs/Modeling.ipynb",
+    "root": "/Users/AFischer/PycharmProjects/cocoon-project",
+    "git": {
+        "remote": "https://github.com/AnneFischer/cocoon-project.git",
+        "commit": "25b8a78e4f15f4c4b8625b717ddaee6ac93398ea"
+    },
+    "email": null,
+    "host": "MacBook-Pro-4.local",
+    "username": "AFischer",
+    "executable": "/Users/AFischer/opt/anaconda3/envs/ai_medicine/bin/python"
+}

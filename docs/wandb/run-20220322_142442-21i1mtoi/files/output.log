@@ -1,0 +1,251 @@
+
+Params: {'learning_rate': 2.4674282371263122e-05, 'num_hidden_units_per_layer': 192, 'weight_decay': 1.0001327480093363e-05, 'kernel_size': 3, 'num_epochs': 35, 'drop_out': 0.44453239644163123, 'batch_size': 60, 'reduced_seq_length': 10, 'num_levels': 2, 'stride': 1, 'pos_weight': tensor([6.8261])}
+[32m[I 2022-03-22 14:24:59,062][39m A new study created in memory with name: no-name-99ce5e94-5d7c-4863-8438-0d9d70ba5fd3
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+Epoch [1/35] Training loss: 1.2127	 Validation loss: 1.1639
+--------------------------------------------------
+Epoch [2/35] Training loss: 1.2132	 Validation loss: 1.1640
+--------------------------------------------------
+Epoch [3/35] Training loss: 1.2096	 Validation loss: 1.1639
+--------------------------------------------------
+Epoch [4/35] Training loss: 1.2062	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [5/35] Training loss: 1.2080	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [6/35] Training loss: 1.2129	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [7/35] Training loss: 1.2166	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [8/35] Training loss: 1.2122	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [9/35] Training loss: 1.2148	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [10/35] Training loss: 1.2123	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [11/35] Training loss: 1.2138	 Validation loss: 1.1638
+--------------------------------------------------
+Epoch [12/35] Training loss: 1.2121	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [13/35] Training loss: 1.1963	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [14/35] Training loss: 1.2022	 Validation loss: 1.1636
+--------------------------------------------------
+Epoch [15/35] Training loss: 1.2047	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [16/35] Training loss: 1.1933	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [17/35] Training loss: 1.2128	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [18/35] Training loss: 1.2167	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [19/35] Training loss: 1.2120	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [20/35] Training loss: 1.2145	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [21/35] Training loss: 1.2046	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [22/35] Training loss: 1.2130	 Validation loss: 1.1637
+--------------------------------------------------
+Epoch [23/35] Training loss: 1.2172	 Validation loss: 1.1636
+--------------------------------------------------
+Epoch [24/35] Training loss: 1.2056	 Validation loss: 1.1636
+--------------------------------------------------
+Epoch [25/35] Training loss: 1.2075	 Validation loss: 1.1636
+--------------------------------------------------
+Epoch [26/35] Training loss: 1.2079	 Validation loss: 1.1636
+--------------------------------------------------
+Epoch [27/35] Training loss: 1.2058	 Validation loss: 1.1635
+--------------------------------------------------
+Epoch [28/35] Training loss: 1.2126	 Validation loss: 1.1635
+--------------------------------------------------
+Epoch [29/35] Training loss: 1.2205	 Validation loss: 1.1635
+--------------------------------------------------
+[32m[I 2022-03-22 14:30:42,229][39m Trial 0 finished with value: 1.1635109186172485 and parameters: {'learning_rate': 2.4674282371263122e-05, 'num_hidden_units_per_layer': 192, 'weight_decay': 1.0001327480093363e-05, 'kernel_size': 3, 'num_epochs': 35, 'drop_out': 0.44453239644163123, 'batch_size': 60, 'reduced_seq_length': 10}. Best is trial 0 with value: 1.1635109186172485.
+Epoch [30/35] Training loss: 1.2070	 Validation loss: 1.1635
+--------------------------------------------------
+Epoch [31/35] Training loss: 1.1944	 Validation loss: 1.1635
+--------------------------------------------------
+Epoch [32/35] Training loss: 1.2048	 Validation loss: 1.1635
+--------------------------------------------------
+Epoch [33/35] Training loss: 1.2155	 Validation loss: 1.1635
+--------------------------------------------------
+Epoch [34/35] Training loss: 1.2284	 Validation loss: 1.1635
+--------------------------------------------------
+Epoch [35/35] Training loss: 1.1956	 Validation loss: 1.1635
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 0.0005521089343739336, 'num_hidden_units_per_layer': 32, 'weight_decay': 0.0016437424569674087, 'kernel_size': 5, 'num_epochs': 45, 'drop_out': 0.4698073626713489, 'batch_size': 10, 'reduced_seq_length': 130, 'num_levels': 5, 'stride': 1, 'pos_weight': tensor([6.8261])}
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 0 < 34; dropping {'epoch': 1, 'train_loss': 1.2337646683057149, 'val_loss': 1.162217954794566}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 1 < 34; dropping {'epoch': 2, 'train_loss': 1.2382406493028004, 'val_loss': 1.1620217561721802}.
+Epoch [1/45] Training loss: 1.2338	 Validation loss: 1.1622
+--------------------------------------------------
+Epoch [2/45] Training loss: 1.2382	 Validation loss: 1.1620
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 2 < 34; dropping {'epoch': 3, 'train_loss': 1.2436882787280612, 'val_loss': 1.1615909934043884}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 3 < 34; dropping {'epoch': 4, 'train_loss': 1.2208680278725095, 'val_loss': 1.162270834048589}.
+Epoch [3/45] Training loss: 1.2437	 Validation loss: 1.1616
+--------------------------------------------------
+Epoch [4/45] Training loss: 1.2209	 Validation loss: 1.1623
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 4 < 34; dropping {'epoch': 5, 'train_loss': 1.2513956791824765, 'val_loss': 1.1613134543100994}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 5 < 34; dropping {'epoch': 6, 'train_loss': 1.2399801280763414, 'val_loss': 1.1617650787035625}.
+Epoch [5/45] Training loss: 1.2514	 Validation loss: 1.1613
+--------------------------------------------------
+Epoch [6/45] Training loss: 1.2400	 Validation loss: 1.1618
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 6 < 34; dropping {'epoch': 7, 'train_loss': 1.1993282172414992, 'val_loss': 1.1614987055460613}.
+Epoch [7/45] Training loss: 1.1993	 Validation loss: 1.1615
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 7 < 34; dropping {'epoch': 8, 'train_loss': 1.2151282462808821, 'val_loss': 1.163870672384898}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 8 < 34; dropping {'epoch': 9, 'train_loss': 1.197440614302953, 'val_loss': 1.1613911191622417}.
+Epoch [8/45] Training loss: 1.2151	 Validation loss: 1.1639
+--------------------------------------------------
+Epoch [9/45] Training loss: 1.1974	 Validation loss: 1.1614
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 9 < 34; dropping {'epoch': 10, 'train_loss': 1.2378857566250696, 'val_loss': 1.162927637497584}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 10 < 34; dropping {'epoch': 11, 'train_loss': 1.2466645340124767, 'val_loss': 1.1612896124521892}.
+Epoch [10/45] Training loss: 1.2379	 Validation loss: 1.1629
+--------------------------------------------------
+Epoch [11/45] Training loss: 1.2467	 Validation loss: 1.1613
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 11 < 34; dropping {'epoch': 12, 'train_loss': 1.2229281067848206, 'val_loss': 1.1611879865328472}.
+Epoch [12/45] Training loss: 1.2229	 Validation loss: 1.1612
+--------------------------------------------------
+Epoch [13/45] Training loss: 1.2063	 Validation loss: 1.1623
+--------------------------------------------------
+Epoch [14/45] Training loss: 1.1956	 Validation loss: 1.1619
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 12 < 34; dropping {'epoch': 13, 'train_loss': 1.2063464124997456, 'val_loss': 1.1623049974441528}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 13 < 34; dropping {'epoch': 14, 'train_loss': 1.1955638196733263, 'val_loss': 1.16186727086703}.
+Epoch [15/45] Training loss: 1.2207	 Validation loss: 1.1615
+--------------------------------------------------
+Epoch [16/45] Training loss: 1.2206	 Validation loss: 1.1646
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 14 < 34; dropping {'epoch': 15, 'train_loss': 1.2206697563330333, 'val_loss': 1.1615257263183594}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 15 < 34; dropping {'epoch': 16, 'train_loss': 1.2205890946918063, 'val_loss': 1.1646224061648052}.
+Epoch [17/45] Training loss: 1.2211	 Validation loss: 1.1618
+--------------------------------------------------
+Epoch [18/45] Training loss: 1.2314	 Validation loss: 1.1618
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 16 < 34; dropping {'epoch': 17, 'train_loss': 1.2211187051402197, 'val_loss': 1.1618168155352275}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 17 < 34; dropping {'epoch': 18, 'train_loss': 1.231373820039961, 'val_loss': 1.1617660025755565}.
+Epoch [19/45] Training loss: 1.2135	 Validation loss: 1.1622
+--------------------------------------------------
+Epoch [20/45] Training loss: 1.2330	 Validation loss: 1.1638
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 18 < 34; dropping {'epoch': 19, 'train_loss': 1.2134628494580586, 'val_loss': 1.1621663371721904}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 19 < 34; dropping {'epoch': 20, 'train_loss': 1.2330157226986356, 'val_loss': 1.163767546415329}.
+Epoch [21/45] Training loss: 1.2305	 Validation loss: 1.1628
+--------------------------------------------------
+Epoch [22/45] Training loss: 1.2370	 Validation loss: 1.1632
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 20 < 34; dropping {'epoch': 21, 'train_loss': 1.2305465903547075, 'val_loss': 1.1627547045548756}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 21 < 34; dropping {'epoch': 22, 'train_loss': 1.2370177739196353, 'val_loss': 1.1632239023844402}.
+Epoch [23/45] Training loss: 1.2226	 Validation loss: 1.1632
+--------------------------------------------------
+Epoch [24/45] Training loss: 1.2192	 Validation loss: 1.1622
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 22 < 34; dropping {'epoch': 23, 'train_loss': 1.2226211826006572, 'val_loss': 1.163172612587611}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 23 < 34; dropping {'epoch': 24, 'train_loss': 1.2191933857070074, 'val_loss': 1.1622166136900585}.
+Epoch [25/45] Training loss: 1.2134	 Validation loss: 1.1632
+--------------------------------------------------
+Epoch [26/45] Training loss: 1.2087	 Validation loss: 1.1646
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 24 < 34; dropping {'epoch': 25, 'train_loss': 1.2133889264530606, 'val_loss': 1.1632483800252278}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 25 < 34; dropping {'epoch': 26, 'train_loss': 1.208681520488527, 'val_loss': 1.1646395325660706}.
+Epoch [27/45] Training loss: 1.2128	 Validation loss: 1.1629
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 26 < 34; dropping {'epoch': 27, 'train_loss': 1.2128222319814894, 'val_loss': 1.1628927290439606}.
+Epoch [28/45] Training loss: 1.2231	 Validation loss: 1.1643
+--------------------------------------------------
+Epoch [29/45] Training loss: 1.2184	 Validation loss: 1.1644
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 27 < 34; dropping {'epoch': 28, 'train_loss': 1.2231080399619207, 'val_loss': 1.1642537315686543}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 28 < 34; dropping {'epoch': 29, 'train_loss': 1.2183762656317816, 'val_loss': 1.1644224921862285}.
+Epoch [30/45] Training loss: 1.2252	 Validation loss: 1.1629
+--------------------------------------------------
+Epoch [31/45] Training loss: 1.2224	 Validation loss: 1.1623
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 29 < 34; dropping {'epoch': 30, 'train_loss': 1.2252105010880365, 'val_loss': 1.1628912488619487}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 30 < 34; dropping {'epoch': 31, 'train_loss': 1.2223858899540372, 'val_loss': 1.1623191038767497}.
+Epoch [32/45] Training loss: 1.2129	 Validation loss: 1.1625
+--------------------------------------------------
+Epoch [33/45] Training loss: 1.2067	 Validation loss: 1.1646
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 31 < 34; dropping {'epoch': 32, 'train_loss': 1.2128862705495622, 'val_loss': 1.1625057061513264}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 32 < 34; dropping {'epoch': 33, 'train_loss': 1.2067003680600061, 'val_loss': 1.1646159092585247}.
+Epoch [34/45] Training loss: 1.2267	 Validation loss: 1.1632
+--------------------------------------------------
+Epoch [35/45] Training loss: 1.2073	 Validation loss: 1.1625
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 33 < 34; dropping {'epoch': 34, 'train_loss': 1.2267380356788635, 'val_loss': 1.1632009744644165}.
+Epoch [36/45] Training loss: 1.2067	 Validation loss: 1.1629
+--------------------------------------------------
+Epoch [37/45] Training loss: 1.2179	 Validation loss: 1.1623
+--------------------------------------------------
+Epoch [38/45] Training loss: 1.2106	 Validation loss: 1.1624
+--------------------------------------------------
+Epoch [39/45] Training loss: 1.2279	 Validation loss: 1.1618
+--------------------------------------------------
+Epoch [40/45] Training loss: 1.2155	 Validation loss: 1.1621
+--------------------------------------------------
+Epoch [41/45] Training loss: 1.2189	 Validation loss: 1.1628
+--------------------------------------------------
+Epoch [42/45] Training loss: 1.2090	 Validation loss: 1.1620
+--------------------------------------------------
+Epoch [43/45] Training loss: 1.2019	 Validation loss: 1.1629
+--------------------------------------------------
+Epoch [44/45] Training loss: 1.2288	 Validation loss: 1.1622
+--------------------------------------------------
+[32m[I 2022-03-22 14:32:17,718][39m Trial 1 finished with value: 1.1623971660931904 and parameters: {'learning_rate': 0.0005521089343739336, 'num_hidden_units_per_layer': 32, 'weight_decay': 0.0016437424569674087, 'kernel_size': 5, 'num_epochs': 45, 'drop_out': 0.4698073626713489, 'batch_size': 10, 'reduced_seq_length': 130}. Best is trial 1 with value: 1.1623971660931904.
+Epoch [45/45] Training loss: 1.2019	 Validation loss: 1.1624
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 0.0005428644993676092, 'num_hidden_units_per_layer': 256, 'weight_decay': 0.01866096796332257, 'kernel_size': 9, 'num_epochs': 40, 'drop_out': 0.19475353713219312, 'batch_size': 20, 'reduced_seq_length': 150, 'num_levels': 4, 'stride': 1, 'pos_weight': tensor([6.8261])}
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 0 < 44; dropping {'epoch': 1, 'train_loss': 1.8352797892358568, 'val_loss': 1.186827540397644}.
+Epoch [1/40] Training loss: 1.8353	 Validation loss: 1.1868
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 1 < 44; dropping {'epoch': 2, 'train_loss': 1.2450464632776048, 'val_loss': 1.1618023316065471}.
+Epoch [2/40] Training loss: 1.2450	 Validation loss: 1.1618
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 2 < 44; dropping {'epoch': 3, 'train_loss': 1.2342708706855774, 'val_loss': 1.22031831741333}.
+Epoch [3/40] Training loss: 1.2343	 Validation loss: 1.2203
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 3 < 44; dropping {'epoch': 4, 'train_loss': 1.307536072201199, 'val_loss': 1.1784065961837769}.
+Epoch [4/40] Training loss: 1.3075	 Validation loss: 1.1784
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 4 < 44; dropping {'epoch': 5, 'train_loss': 1.2875172164705064, 'val_loss': 1.1854047377904255}.
+Epoch [5/40] Training loss: 1.2875	 Validation loss: 1.1854
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 5 < 44; dropping {'epoch': 6, 'train_loss': 1.3442329830593533, 'val_loss': 1.2565594514211018}.
+Epoch [6/40] Training loss: 1.3442	 Validation loss: 1.2566
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 6 < 44; dropping {'epoch': 7, 'train_loss': 1.3313846521907382, 'val_loss': 1.1826858917872112}.
+Epoch [7/40] Training loss: 1.3314	 Validation loss: 1.1827
+--------------------------------------------------
+Epoch [8/40] Training loss: 1.3793	 Validation loss: 1.1625
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 7 < 44; dropping {'epoch': 8, 'train_loss': 1.3792576260036893, 'val_loss': 1.1624813477198284}.
+Epoch [9/40] Training loss: 1.3025	 Validation loss: 1.2158
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 8 < 44; dropping {'epoch': 9, 'train_loss': 1.3025433089998033, 'val_loss': 1.2158482472101848}.
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 9 < 44; dropping {'epoch': 10, 'train_loss': 1.2950852711995442, 'val_loss': 1.1693394978841145}.
+Epoch [10/40] Training loss: 1.2951	 Validation loss: 1.1693
+--------------------------------------------------
+Epoch [11/40] Training loss: 1.1455	 Validation loss: 2.5986
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 10 < 44; dropping {'epoch': 11, 'train_loss': 1.1455345782968733, 'val_loss': 2.5985568364461265}.
+Epoch [12/40] Training loss: 1.3879	 Validation loss: 1.1664
+--------------------------------------------------
+[34m[1mwandb[39m[22m: [33mWARNING[39m Step must only increase in log calls.  Step 11 < 44; dropping {'epoch': 12, 'train_loss': 1.3878587749269273, 'val_loss': 1.1663601398468018}.

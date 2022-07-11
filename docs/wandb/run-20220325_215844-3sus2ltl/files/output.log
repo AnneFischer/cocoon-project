@@ -1,0 +1,27 @@
+
+Params: {'learning_rate': 0.00025355871914827584, 'num_hidden_units_per_layer': 64, 'weight_decay': 0.0006636363343467505, 'kernel_size': 5, 'num_epochs': 10, 'drop_out': 0.3450869766951231, 'batch_size': 50, 'reduced_seq_length': 90, 'num_levels': 5, 'stride': 1, 'pos_weight': tensor([6.8261])}
+[32m[I 2022-03-25 21:58:58,344][39m A new study created in memory with name: no-name-d77a4018-e192-48ab-8f29-641dc0a5ec8a
+[33m[W 2022-03-25 21:58:58,405][39m Trial 0 failed because of the following error: AssertionError("peak_frequency is currently not implemented, choose either of ['sample_entropy', 'peak_frequency', 'median_frequency']")
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/optuna/study/_optimize.py", line 213, in _run_trial
+    value_or_values = func(trial)
+  File "/var/folders/16/mg5_s98x3yd90kq7mmfmk3pr0000gn/T/ipykernel_12091/427360400.py", line 59, in objective_tcn_model_samp_en
+    custom_train_loader = custom_calculate_feature_over_fixed_time_window(trial, params, df_signals_new,
+  File "/Users/AFischer/PycharmProjects/cocoon-project/src_pre_term_database/data_processing_and_feature_engineering.py", line 1198, in custom_calculate_feature_over_fixed_time_window
+    df_feature = calculate_feature_over_fixed_time_window(df_signals_new,
+  File "/Users/AFischer/PycharmProjects/cocoon-project/src_pre_term_database/data_processing_and_feature_engineering.py", line 344, in calculate_feature_over_fixed_time_window
+    assert [feat for feat in feature_options if feat not in feature_options], \
+AssertionError: peak_frequency is currently not implemented, choose either of ['sample_entropy', 'peak_frequency', 'median_frequency']
+[32m[I 2022-03-25 22:01:44,078][39m A new study created in memory with name: no-name-ae8525c5-2018-4e3b-b1fc-ae1331ee4c81
+[33m[W 2022-03-25 22:01:44,131][39m Trial 0 failed because of the following error: AssertionError("peak_frequency is currently not implemented, choose either of ['sample_entropy', 'peak_frequency', 'median_frequency']")
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/optuna/study/_optimize.py", line 213, in _run_trial
+    value_or_values = func(trial)
+  File "/var/folders/16/mg5_s98x3yd90kq7mmfmk3pr0000gn/T/ipykernel_12091/427360400.py", line 59, in objective_tcn_model_samp_en
+    custom_train_loader = custom_calculate_feature_over_fixed_time_window(trial, params, df_signals_new,
+  File "/Users/AFischer/PycharmProjects/cocoon-project/src_pre_term_database/data_processing_and_feature_engineering.py", line 1198, in custom_calculate_feature_over_fixed_time_window
+    df_feature = calculate_feature_over_fixed_time_window(df_signals_new,
+  File "/Users/AFischer/PycharmProjects/cocoon-project/src_pre_term_database/data_processing_and_feature_engineering.py", line 344, in calculate_feature_over_fixed_time_window
+    assert [feat for feat in feature_options if feat not in feature_options], \
+AssertionError: peak_frequency is currently not implemented, choose either of ['sample_entropy', 'peak_frequency', 'median_frequency']
+Params: {'learning_rate': 5.18954898033669e-05, 'num_hidden_units_per_layer': 160, 'weight_decay': 0.0003645066212282138, 'kernel_size': 9, 'num_epochs': 15, 'drop_out': 0.24463028568973064, 'batch_size': 40, 'reduced_seq_length': 150, 'num_levels': 4, 'stride': 1, 'pos_weight': tensor([6.8261])}

@@ -1,9 +1,13 @@
 import pandas as pd
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Optional
 import json
 import os
 import numpy as np
+from itertools import combinations
 
+
+DEFAULT_CORRELATION_THRESHOLD = 0.85
+NOT_ASCENDING = False
 numeric_type = Union[int, float, complex, np.number]
 
 
@@ -172,8 +176,100 @@ def replace_na_with_zero(df: pd.DataFrame) -> pd.DataFrame:
     df : pd.DataFrame
     """
     num_rows_with_nas = len(df[(df.isnull().any(axis=1))])
-    print(f'The number of rows with infinite numbers that will be replaced with zero is: {num_rows_with_nas}')
+    print(f'The number of rows with NA numbers that will be replaced with zero is: {num_rows_with_nas}')
 
     df = df.fillna(0)
 
     return df
+
+
+def get_correlated_columns(data: pd.DataFrame,
+                           cols_to_check: List[str] = None,
+                           thresh: float = DEFAULT_CORRELATION_THRESHOLD
+                           ) -> pd.Series:
+    """Get the pairs of columns with correlation coefficient higher than a threshold.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Dataframe to check
+    cols_to_check : List[str], optional
+        Columns to check. If None, check all columns. Default = None
+    thresh : float, optional
+        Only return pairs with correlation coefficient higher than this threshold. Default = 0.85
+
+    Returns
+    -------
+    type: pd.Series
+        Series with correlation coefficients and the pairs of columns as indices.
+
+    """
+    if cols_to_check is None:
+        cols_to_check = list(data.columns)
+
+    return (
+        data.loc[:, cols_to_check]
+        .corr().abs().unstack()                 # compute correlation matrix
+        .loc[combinations(cols_to_check, 2)]    # only select unique pairs
+        .sort_values(ascending=NOT_ASCENDING)
+        .pipe(lambda f: f.loc[f > thresh])      # filter series by threshold
+    )
+
+
+def remove_correlated_columns(data: pd.DataFrame,
+                              cols_to_check: Optional[List[str]] = None,
+                              thresh: float = DEFAULT_CORRELATION_THRESHOLD
+                              ) -> List[str]:
+    """For each pair of columns with correlation coefficient higher than a threshold
+    return only one of the two columns.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Dataframe to check
+    cols_to_check : List[str], optional
+        Columns to check. If None, check all columns. Default = None
+    thresh : float, optional
+        Only return pairs with correlation coefficient higher than this threshold. Default = 0.85
+
+    Returns
+    -------
+    type: List[str]
+        Column list with one column removed for each pair of correlated columns
+
+    """
+    if cols_to_check is None:
+        cols_to_check = list(data.columns)
+
+    data_corr = get_correlated_columns(data=data,
+                                       cols_to_check=cols_to_check,
+                                       thresh=thresh)
+
+    cols_to_remove: List[str] = []
+    # loop over the columns that are highly correlated
+    for row in data_corr.index:
+        # if not yet one of the columns is in the remove list
+        # then add one of the two columns to the remove list
+        if all(row[x] not in cols_to_remove for x in [0, 1]):
+            cols_to_remove.append(row[0])
+
+    cols_filtered = list(set(cols_to_check) - set(cols_to_remove))
+
+    return cols_filtered
+
+
+def plot_grad_flow(named_parameters):
+    ave_grads = []
+    layers = []
+    for n, p in named_parameters:
+        if(p.requires_grad) and ("bias" not in n):
+            layers.append(n)
+            ave_grads.append(p.grad.abs().mean())
+    plt.plot(ave_grads, alpha=0.3, color="b")
+    plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
+    plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
+    plt.xlim(xmin=0, xmax=len(ave_grads))
+    plt.xlabel("Layers")
+    plt.ylabel("average gradient")
+    plt.title("Gradient flow")
+    plt.grid(True)

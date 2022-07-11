@@ -1,0 +1,15 @@
+[33m[W 2022-03-23 16:41:27,172][39m Trial 0 failed because of the following error: AttributeError("'numpy.ndarray' object has no attribute 'to'")
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/optuna/study/_optimize.py", line 213, in _run_trial
+    value_or_values = func(trial)
+  File "/var/folders/16/mg5_s98x3yd90kq7mmfmk3pr0000gn/T/ipykernel_597/748172136.py", line 76, in objective_tcn_model_samp_en
+    loss = opt_tcn.train(trial, custom_train_loader_samp_en, custom_val_loader_samp_en, config,
+  File "/var/folders/16/mg5_s98x3yd90kq7mmfmk3pr0000gn/T/ipykernel_597/3557646750.py", line 140, in train
+    wandb.log({"epoch": epoch, "train_logits": wandb.Histogram(flattened_train_logits.to("cpu")), "val_logits": wandb.Histogram(flattened_val_logits.to("cpu")), "train_loss": avg_sample_train_loss_epoch, "val_loss": avg_sample_val_loss_epoch}, step=log_step)
+AttributeError: 'numpy.ndarray' object has no attribute 'to'
+Params: {'learning_rate': 0.0006381969882673929, 'num_hidden_units_per_layer': 160, 'weight_decay': 5.668398848877459e-06, 'kernel_size': 5, 'num_epochs': 25, 'drop_out': 0.36575827539028594, 'batch_size': 10, 'reduced_seq_length': 100, 'num_levels': 5, 'stride': 1, 'pos_weight': tensor([6.8261])}
+[32m[I 2022-03-23 16:42:04,536][39m A new study created in memory with name: no-name-b85e78be-1931-4334-8abe-9ec4bef687a5
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0

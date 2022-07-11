@@ -1,0 +1,63 @@
+Epoch [1/30] Training loss: 587.9280	 Validation loss: 4.2493
+--------------------------------------------------
+Epoch [2/30] Training loss: 2.0280	 Validation loss: 1.2253
+--------------------------------------------------
+Epoch [3/30] Training loss: 1.4435	 Validation loss: 1.2342
+--------------------------------------------------
+Epoch [4/30] Training loss: 1.2075	 Validation loss: 1.2450
+--------------------------------------------------
+Epoch [5/30] Training loss: 1.2871	 Validation loss: 1.2568
+--------------------------------------------------
+Epoch [6/30] Training loss: 1.2174	 Validation loss: 1.2435
+--------------------------------------------------
+Epoch [7/30] Training loss: 1.2751	 Validation loss: 1.2412
+--------------------------------------------------
+Epoch [8/30] Training loss: 1.2029	 Validation loss: 1.2461
+--------------------------------------------------
+Epoch [9/30] Training loss: 1.1906	 Validation loss: 1.2399
+--------------------------------------------------
+Epoch [10/30] Training loss: 1.2367	 Validation loss: 1.2385
+--------------------------------------------------
+Epoch [11/30] Training loss: 1.1958	 Validation loss: 1.2397
+--------------------------------------------------
+Epoch [12/30] Training loss: 1.2312	 Validation loss: 1.2416
+--------------------------------------------------
+Epoch [13/30] Training loss: 1.2382	 Validation loss: 1.2347
+--------------------------------------------------
+Epoch [14/30] Training loss: 1.2035	 Validation loss: 1.2379
+--------------------------------------------------
+Epoch [15/30] Training loss: 1.1845	 Validation loss: 1.2360
+--------------------------------------------------
+Epoch [16/30] Training loss: 1.1683	 Validation loss: 1.2318
+--------------------------------------------------
+Epoch [17/30] Training loss: 1.2335	 Validation loss: 1.2313
+--------------------------------------------------
+Epoch [18/30] Training loss: 1.2202	 Validation loss: 1.2329
+--------------------------------------------------
+Epoch [19/30] Training loss: 1.1627	 Validation loss: 1.2309
+--------------------------------------------------
+Epoch [20/30] Training loss: 1.1890	 Validation loss: 1.2291
+--------------------------------------------------
+Epoch [21/30] Training loss: 1.1650	 Validation loss: 1.2253
+--------------------------------------------------
+Epoch [22/30] Training loss: 1.1473	 Validation loss: 1.2226
+--------------------------------------------------
+Epoch [23/30] Training loss: 1.1957	 Validation loss: 1.2255
+--------------------------------------------------
+Epoch [24/30] Training loss: 1.1307	 Validation loss: 1.2221
+--------------------------------------------------
+Epoch [25/30] Training loss: 1.1657	 Validation loss: 1.2336
+--------------------------------------------------
+Epoch [26/30] Training loss: 1.1411	 Validation loss: 1.2265
+--------------------------------------------------
+Epoch [27/30] Training loss: 1.1270	 Validation loss: 1.2235
+--------------------------------------------------
+Epoch [28/30] Training loss: 1.1591	 Validation loss: 1.2209
+--------------------------------------------------
+Epoch [29/30] Training loss: 1.1162	 Validation loss: 1.2212
+--------------------------------------------------
+[32m[I 2022-03-25 12:12:58,998][39m Trial 1 finished with value: 1.2289340496063232 and parameters: {'learning_rate': 0.009988197691842756, 'num_hidden_units_per_layer': 192, 'weight_decay': 8.920140504425468e-05, 'kernel_size': 5, 'num_epochs': 30, 'drop_out': 0.2520304471068724, 'batch_size': 30, 'reduced_seq_length': 180}. Best is trial 1 with value: 1.2289340496063232.
+Epoch [30/30] Training loss: 1.1658	 Validation loss: 1.2289
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 0.0005667132127687578, 'num_hidden_units_per_layer': 32, 'weight_decay': 0.0005730950500122542, 'kernel_size': 7, 'num_epochs': 20, 'drop_out': 0.3025444674992914, 'batch_size': 30, 'reduced_seq_length': 80, 'num_levels': 4, 'stride': 1, 'pos_weight': tensor([6.8261])}

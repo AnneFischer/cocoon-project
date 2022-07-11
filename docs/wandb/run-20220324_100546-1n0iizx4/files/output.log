@@ -1,0 +1,37 @@
+Epoch [1/15] Training loss: 5.7454	 Validation loss: 2.6733
+--------------------------------------------------
+Epoch [2/15] Training loss: 1.8478	 Validation loss: 1.1775
+--------------------------------------------------
+Epoch [3/15] Training loss: 1.2211	 Validation loss: 1.1794
+--------------------------------------------------
+Epoch [4/15] Training loss: 1.2618	 Validation loss: 1.1716
+--------------------------------------------------
+Epoch [5/15] Training loss: 1.2136	 Validation loss: 1.1727
+--------------------------------------------------
+Epoch [6/15] Training loss: 1.2180	 Validation loss: 1.1783
+--------------------------------------------------
+Epoch [7/15] Training loss: 1.2030	 Validation loss: 1.1832
+--------------------------------------------------
+Epoch [8/15] Training loss: 1.2104	 Validation loss: 1.1858
+--------------------------------------------------
+Epoch [9/15] Training loss: 1.2065	 Validation loss: 1.1879
+--------------------------------------------------
+Epoch [10/15] Training loss: 1.2002	 Validation loss: 1.1873
+--------------------------------------------------
+Epoch [11/15] Training loss: 1.2151	 Validation loss: 1.1856
+--------------------------------------------------
+Epoch [12/15] Training loss: 1.2112	 Validation loss: 1.1860
+--------------------------------------------------
+Epoch [13/15] Training loss: 1.2011	 Validation loss: 1.1847
+--------------------------------------------------
+Epoch [14/15] Training loss: 1.2018	 Validation loss: 1.1849
+--------------------------------------------------
+[32m[I 2022-03-24 10:07:58,556][39m Trial 28 finished with value: 1.1842950582504272 and parameters: {'learning_rate': 0.004589596540873995, 'num_hidden_units_per_layer': 192, 'weight_decay': 0.00025533797777870144, 'kernel_size': 5, 'num_epochs': 15, 'drop_out': 0.41652170824547846, 'batch_size': 60, 'reduced_seq_length': 110}. Best is trial 3 with value: 0.9335269729296366.
+Epoch [15/15] Training loss: 1.1968	 Validation loss: 1.1843
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 0.06426411751989361, 'num_hidden_units_per_layer': 256, 'weight_decay': 3.655575758304258e-05, 'kernel_size': 7, 'num_epochs': 35, 'drop_out': 0.1345444721648953, 'batch_size': 60, 'reduced_seq_length': 50, 'num_levels': 3, 'stride': 1, 'pos_weight': tensor([6.8261])}
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0
+The number of rows with infinite numbers that will be replaced with zero is: 0
+The number of rows with NA numbers that will be replaced with zero is: 0

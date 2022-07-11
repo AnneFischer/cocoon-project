@@ -1,0 +1,3 @@
+
+Params: {'learning_rate': 0.001838897470361552, 'num_hidden_units_per_layer': 256, 'weight_decay': 0.034744395296522124, 'kernel_size': 3, 'num_epochs': 20, 'drop_out': 0.2332461600035723, 'batch_size': 50, 'reduced_seq_length': 110, 'num_levels': 6, 'stride': 1, 'pos_weight': tensor([6.8261])}
+[32m[I 2022-03-25 22:10:52,319][39m A new study created in memory with name: no-name-4373d02d-b52f-46d8-987c-518fdcf23ba5

@@ -1,0 +1,33 @@
+Epoch [1/15] Training loss: 1.2851	 Validation loss: 1.1672
+--------------------------------------------------
+Epoch [2/15] Training loss: 1.2667	 Validation loss: 1.2417
+--------------------------------------------------
+Epoch [3/15] Training loss: 1.2071	 Validation loss: 1.2074
+--------------------------------------------------
+Epoch [4/15] Training loss: 1.1720	 Validation loss: 1.1988
+--------------------------------------------------
+Epoch [5/15] Training loss: 1.1778	 Validation loss: 1.2256
+--------------------------------------------------
+Epoch [6/15] Training loss: 1.1792	 Validation loss: 1.1774
+--------------------------------------------------
+Epoch [7/15] Training loss: 1.1088	 Validation loss: 1.1658
+--------------------------------------------------
+Epoch [8/15] Training loss: 1.0941	 Validation loss: 1.2003
+--------------------------------------------------
+Epoch [9/15] Training loss: 1.0180	 Validation loss: 1.2072
+--------------------------------------------------
+Epoch [10/15] Training loss: 0.8462	 Validation loss: 1.4348
+--------------------------------------------------
+Epoch [11/15] Training loss: 1.0510	 Validation loss: 1.2498
+--------------------------------------------------
+Epoch [12/15] Training loss: 0.9389	 Validation loss: 1.2624
+--------------------------------------------------
+Epoch [13/15] Training loss: 0.8697	 Validation loss: 1.2569
+--------------------------------------------------
+Epoch [14/15] Training loss: 0.8034	 Validation loss: 1.4501
+--------------------------------------------------
+[32m[I 2022-03-25 12:04:14,408][39m Trial 0 finished with value: 1.361483136812846 and parameters: {'learning_rate': 0.0037977049861252637, 'num_hidden_units_per_layer': 64, 'weight_decay': 0.07466747905682579, 'kernel_size': 3, 'num_epochs': 15, 'drop_out': 0.3448017709748548, 'batch_size': 50, 'reduced_seq_length': 130}. Best is trial 0 with value: 1.361483136812846.
+Epoch [15/15] Training loss: 0.7086	 Validation loss: 1.3615
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 0.009988197691842756, 'num_hidden_units_per_layer': 192, 'weight_decay': 8.920140504425468e-05, 'kernel_size': 5, 'num_epochs': 30, 'drop_out': 0.2520304471068724, 'batch_size': 30, 'reduced_seq_length': 180, 'num_levels': 6, 'stride': 1, 'pos_weight': tensor([6.8261])}

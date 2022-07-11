@@ -1,0 +1,208 @@
+2022-03-18 16:36:59,590 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Loading settings from /Users/AFischer/.config/wandb/settings
+2022-03-18 16:36:59,590 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Loading settings from /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/settings
+2022-03-18 16:36:59,590 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Loading settings from environment variables: {}
+2022-03-18 16:36:59,590 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Inferring run settings from compute environment: {'program': '<python with no main file>'}
+2022-03-18 16:36:59,590 INFO    MainThread:85318 [wandb_init.py:_log_setup():405] Logging user logs to /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220318_163659-15ag1izl/logs/debug.log
+2022-03-18 16:36:59,590 INFO    MainThread:85318 [wandb_init.py:_log_setup():406] Logging internal logs to /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220318_163659-15ag1izl/logs/debug-internal.log
+2022-03-18 16:36:59,591 INFO    MainThread:85318 [wandb_init.py:init():439] calling init triggers
+2022-03-18 16:36:59,591 INFO    MainThread:85318 [wandb_init.py:init():442] wandb.init called with sweep_config: {}
+config: {}
+2022-03-18 16:36:59,591 INFO    MainThread:85318 [wandb_init.py:init():458] re-initializing run, found existing run on stack: b98oyavu
+2022-03-18 16:36:59,592 INFO    MainThread:85318 [wandb_run.py:finish():1539] finishing run afischer/tcn_samp_en-project/b98oyavu
+2022-03-18 16:36:59,592 INFO    MainThread:85318 [jupyter.py:save_history():429] not saving jupyter history
+2022-03-18 16:36:59,592 INFO    MainThread:85318 [jupyter.py:save_ipynb():374] not saving jupyter notebook
+2022-03-18 16:36:59,592 INFO    MainThread:85318 [wandb_init.py:_jupyter_teardown():337] cleaning up jupyter logic
+2022-03-18 16:36:59,592 INFO    MainThread:85318 [wandb_run.py:_atexit_cleanup():1702] got exitcode: 0
+2022-03-18 16:36:59,593 INFO    MainThread:85318 [wandb_run.py:_restore():1674] restore
+2022-03-18 16:36:59,850 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 825
+  total_bytes: 825
+}
+
+2022-03-18 16:37:00,114 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 825
+  total_bytes: 825
+}
+
+2022-03-18 16:37:00,400 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 825
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:00,505 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 825
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:00,612 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 825
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:00,719 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:00,829 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:00,938 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:01,046 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:01,156 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:01,263 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:01,882 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+
+2022-03-18 16:37:02,537 INFO    MainThread:85318 [wandb_run.py:_on_finish():1831] got exit ret: done: true
+exit_result {
+}
+file_counts {
+  wandb_count: 6
+}
+pusher_stats {
+  uploaded_bytes: 21655
+  total_bytes: 21655
+}
+local_info {
+}
+
+2022-03-18 16:37:03,690 INFO    MainThread:85318 [wandb_run.py:_footer_history_summary_info():2865] rendering history
+2022-03-18 16:37:03,690 INFO    MainThread:85318 [wandb_run.py:_footer_history_summary_info():2894] rendering summary
+2022-03-18 16:37:03,692 INFO    MainThread:85318 [wandb_run.py:_footer_sync_info():2822] logging synced files
+2022-03-18 16:37:03,694 INFO    MainThread:85318 [wandb_init.py:init():492] starting backend
+2022-03-18 16:37:03,694 INFO    MainThread:85318 [backend.py:_multiprocessing_setup():99] multiprocessing start_methods=spawn,fork,forkserver, using: spawn
+2022-03-18 16:37:03,696 INFO    MainThread:85318 [backend.py:ensure_launched():219] starting backend process...
+2022-03-18 16:37:03,712 INFO    MainThread:85318 [backend.py:ensure_launched():224] started backend process with pid: 85657
+2022-03-18 16:37:03,714 INFO    MainThread:85318 [wandb_init.py:init():501] backend started and connected
+2022-03-18 16:37:03,735 INFO    MainThread:85318 [wandb_run.py:_label_probe_notebook():947] probe notebook
+2022-03-18 16:37:03,735 INFO    MainThread:85318 [wandb_run.py:_label_probe_notebook():957] Unable to probe notebook: 'NoneType' object has no attribute 'get'
+2022-03-18 16:37:03,735 INFO    MainThread:85318 [wandb_init.py:init():565] updated telemetry
+2022-03-18 16:37:03,766 INFO    MainThread:85318 [wandb_init.py:init():596] communicating run to backend with 30 second timeout
+2022-03-18 16:37:04,654 INFO    MainThread:85318 [wandb_run.py:_on_init():1759] communicating current version
+2022-03-18 16:37:04,699 INFO    MainThread:85318 [wandb_run.py:_on_init():1763] got version response 
+2022-03-18 16:37:04,699 INFO    MainThread:85318 [wandb_init.py:init():625] starting run threads in backend
+2022-03-18 16:37:06,845 INFO    MainThread:85318 [wandb_run.py:_console_start():1733] atexit reg
+2022-03-18 16:37:06,846 INFO    MainThread:85318 [wandb_run.py:_redirect():1606] redirect: SettingsConsole.WRAP
+2022-03-18 16:37:06,846 INFO    MainThread:85318 [wandb_run.py:_redirect():1643] Wrapping output streams.
+2022-03-18 16:37:06,846 INFO    MainThread:85318 [wandb_run.py:_redirect():1667] Redirects installed.
+2022-03-18 16:37:06,846 INFO    MainThread:85318 [wandb_init.py:init():664] run started, returning control to user process
+2022-03-18 16:37:10,726 INFO    MainThread:85318 [wandb_config.py:__setitem__():153] config set batch_size = 10 - <bound method Run._config_callback of <wandb.sdk.wandb_run.Run object at 0x7f910074de20>>
+2022-03-18 16:37:10,727 INFO    MainThread:85318 [wandb_run.py:_config_callback():992] config_cb batch_size 10 None
+2022-03-18 16:37:10,728 INFO    MainThread:85318 [wandb_config.py:__setitem__():153] config set epochs = 40 - <bound method Run._config_callback of <wandb.sdk.wandb_run.Run object at 0x7f910074de20>>
+2022-03-18 16:37:10,728 INFO    MainThread:85318 [wandb_run.py:_config_callback():992] config_cb epochs 40 None
+2022-03-18 16:37:10,729 INFO    MainThread:85318 [wandb_config.py:__setitem__():153] config set lr = 0.001100908904544886 - <bound method Run._config_callback of <wandb.sdk.wandb_run.Run object at 0x7f910074de20>>
+2022-03-18 16:37:10,730 INFO    MainThread:85318 [wandb_run.py:_config_callback():992] config_cb lr 0.001100908904544886 None
+2022-03-18 16:37:10,730 INFO    MainThread:85318 [wandb_config.py:__setitem__():153] config set no_cuda = False - <bound method Run._config_callback of <wandb.sdk.wandb_run.Run object at 0x7f910074de20>>
+2022-03-18 16:37:10,730 INFO    MainThread:85318 [wandb_run.py:_config_callback():992] config_cb no_cuda False None
+2022-03-18 16:37:10,731 INFO    MainThread:85318 [wandb_config.py:__setitem__():153] config set seed = 42 - <bound method Run._config_callback of <wandb.sdk.wandb_run.Run object at 0x7f910074de20>>
+2022-03-18 16:37:10,731 INFO    MainThread:85318 [wandb_run.py:_config_callback():992] config_cb seed 42 None
+2022-03-18 16:37:11,304 INFO    MainThread:85318 [wandb_watch.py:watch():47] Watching
+2022-03-18 16:37:13,324 INFO    MainThread:85318 [wandb_watch.py:watch():47] Watching
+2022-03-18 16:39:06,952 INFO    MainThread:85318 [wandb_watch.py:watch():47] Watching
+2022-03-18 16:39:09,677 INFO    MainThread:85318 [wandb_watch.py:watch():47] Watching
+2022-03-18 16:43:01,457 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Loading settings from /Users/AFischer/.config/wandb/settings
+2022-03-18 16:43:01,457 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Loading settings from /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/settings
+2022-03-18 16:43:01,457 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Loading settings from environment variables: {}
+2022-03-18 16:43:01,457 INFO    MainThread:85318 [wandb_setup.py:_flush():75] Inferring run settings from compute environment: {'program': '<python with no main file>'}
+2022-03-18 16:43:01,457 INFO    MainThread:85318 [wandb_init.py:_log_setup():405] Logging user logs to /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220318_164301-ztmr6ngw/logs/debug.log
+2022-03-18 16:43:01,458 INFO    MainThread:85318 [wandb_init.py:_log_setup():406] Logging internal logs to /Users/AFischer/PycharmProjects/cocoon-project/docs/wandb/run-20220318_164301-ztmr6ngw/logs/debug-internal.log
+2022-03-18 16:43:01,458 INFO    MainThread:85318 [wandb_init.py:_jupyter_setup():355] configuring jupyter hooks <wandb.sdk.wandb_init._WandbInit object at 0x7f910afc54f0>
+2022-03-18 16:43:01,458 INFO    MainThread:85318 [wandb_init.py:init():439] calling init triggers
+2022-03-18 16:43:01,459 INFO    MainThread:85318 [wandb_init.py:init():442] wandb.init called with sweep_config: {}
+config: {}
+2022-03-18 16:43:01,459 INFO    MainThread:85318 [wandb_init.py:init():458] re-initializing run, found existing run on stack: 15ag1izl
+2022-03-18 16:43:01,469 ERROR   MainThread:85318 [wandb_init.py:init():981] error
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 954, in init
+    run = wi.init()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 471, in init
+    self._wl._global_run_stack[-1].finish()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 1538, in finish
+    tel.feature.finish = True
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/lib/telemetry.py", line 43, in __exit__
+    self._run._telemetry_callback(self._obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 470, in _telemetry_callback
+    self._telemetry_flush()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 481, in _telemetry_flush
+    self._backend.interface._publish_telemetry(self._telemetry_obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 73, in _publish_telemetry
+    self._publish(rec)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_queue.py", line 49, in _publish
+    raise Exception("The wandb backend process has shutdown")
+Exception: The wandb backend process has shutdown
+2022-03-18 16:43:34,238 ERROR   MainThread:85318 [wandb_init.py:init():981] error
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 951, in init
+    wi.setup(kwargs)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_init.py", line 143, in setup
+    tel.feature.set_init_tags = True
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/lib/telemetry.py", line 43, in __exit__
+    self._run._telemetry_callback(self._obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 470, in _telemetry_callback
+    self._telemetry_flush()
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/wandb_run.py", line 481, in _telemetry_flush
+    self._backend.interface._publish_telemetry(self._telemetry_obj)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_shared.py", line 73, in _publish_telemetry
+    self._publish(rec)
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/wandb/sdk/interface/interface_queue.py", line 49, in _publish
+    raise Exception("The wandb backend process has shutdown")
+Exception: The wandb backend process has shutdown
+2022-03-18 16:46:43,608 INFO    MainThread:85318 [wandb_run.py:_atexit_cleanup():1702] got exitcode: 0
+2022-03-18 16:46:43,643 INFO    MainThread:85318 [wandb_run.py:_restore():1674] restore

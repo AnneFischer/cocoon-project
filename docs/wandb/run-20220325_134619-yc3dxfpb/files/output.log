@@ -1,0 +1,23 @@
+Epoch [1/10] Training loss: 1.2266	 Validation loss: 1.1864
+--------------------------------------------------
+Epoch [2/10] Training loss: 1.2251	 Validation loss: 1.1858
+--------------------------------------------------
+Epoch [3/10] Training loss: 1.2245	 Validation loss: 1.1854
+--------------------------------------------------
+Epoch [4/10] Training loss: 1.2256	 Validation loss: 1.1849
+--------------------------------------------------
+Epoch [5/10] Training loss: 1.2299	 Validation loss: 1.1845
+--------------------------------------------------
+Epoch [6/10] Training loss: 1.2232	 Validation loss: 1.1841
+--------------------------------------------------
+Epoch [7/10] Training loss: 1.2241	 Validation loss: 1.1838
+--------------------------------------------------
+Epoch [8/10] Training loss: 1.2218	 Validation loss: 1.1835
+--------------------------------------------------
+Epoch [9/10] Training loss: 1.2244	 Validation loss: 1.1831
+--------------------------------------------------
+[32m[I 2022-03-25 13:46:32,896][39m Trial 11 finished with value: 1.1827751994132996 and parameters: {'learning_rate': 1.1026909039489844e-05, 'num_hidden_units_per_layer': 32, 'weight_decay': 1.0126836271625897e-06, 'kernel_size': 7, 'num_epochs': 10, 'drop_out': 0.1138097551263664, 'batch_size': 30, 'reduced_seq_length': 90}. Best is trial 5 with value: 1.1609607934951782.
+Epoch [10/10] Training loss: 1.2170	 Validation loss: 1.1828
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 7.528111772517359e-05, 'num_hidden_units_per_layer': 32, 'weight_decay': 0.0014599022460257075, 'kernel_size': 7, 'num_epochs': 35, 'drop_out': 0.49290383204264493, 'batch_size': 20, 'reduced_seq_length': 30, 'num_levels': 3, 'stride': 1, 'pos_weight': tensor([6.8261])}

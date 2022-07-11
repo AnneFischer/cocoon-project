@@ -1,0 +1,11 @@
+[32m[I 2022-03-25 12:02:03,350][39m A new study created in memory with name: no-name-cb31c782-e030-4dea-98d7-8bf56efbefee
+[33m[W 2022-03-25 12:02:03,367][39m Trial 0 failed because of the following error: NameError("name 'custom_calculate_feature_over_fixed_time_window' is not defined")
+Traceback (most recent call last):
+  File "/Users/AFischer/opt/anaconda3/envs/ai_medicine/lib/python3.8/site-packages/optuna/study/_optimize.py", line 213, in _run_trial
+    value_or_values = func(trial)
+  File "/var/folders/16/mg5_s98x3yd90kq7mmfmk3pr0000gn/T/ipykernel_8658/427360400.py", line 59, in objective_tcn_model_samp_en
+    custom_train_loader = custom_calculate_feature_over_fixed_time_window(trial, params, df_signals_new,
+NameError: name 'custom_calculate_feature_over_fixed_time_window' is not defined
+Params: {'learning_rate': 0.008324805861127412, 'num_hidden_units_per_layer': 32, 'weight_decay': 1.7320164797358741e-06, 'kernel_size': 3, 'num_epochs': 50, 'drop_out': 0.4393983402693943, 'batch_size': 60, 'reduced_seq_length': 100, 'num_levels': 6, 'stride': 1, 'pos_weight': tensor([6.8261])}
+[32m[I 2022-03-25 12:03:23,567][39m A new study created in memory with name: no-name-f31fe485-ee44-49ec-9d1c-9ed2258739d8
+Params: {'learning_rate': 0.0037977049861252637, 'num_hidden_units_per_layer': 64, 'weight_decay': 0.07466747905682579, 'kernel_size': 3, 'num_epochs': 15, 'drop_out': 0.3448017709748548, 'batch_size': 50, 'reduced_seq_length': 130, 'num_levels': 6, 'stride': 1, 'pos_weight': tensor([6.8261])}

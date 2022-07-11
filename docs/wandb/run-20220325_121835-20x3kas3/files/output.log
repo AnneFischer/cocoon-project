@@ -1,0 +1,104 @@
+Epoch [1/50] Training loss: 1.2306	 Validation loss: 1.1718
+--------------------------------------------------
+Epoch [2/50] Training loss: 1.2074	 Validation loss: 1.1710
+--------------------------------------------------
+Epoch [3/50] Training loss: 1.1954	 Validation loss: 1.1704
+--------------------------------------------------
+Epoch [4/50] Training loss: 1.1969	 Validation loss: 1.1716
+--------------------------------------------------
+Epoch [5/50] Training loss: 1.1809	 Validation loss: 1.1689
+--------------------------------------------------
+Epoch [6/50] Training loss: 1.1860	 Validation loss: 1.1660
+--------------------------------------------------
+Epoch [7/50] Training loss: 1.1610	 Validation loss: 1.1649
+--------------------------------------------------
+Epoch [8/50] Training loss: 1.1536	 Validation loss: 1.1643
+--------------------------------------------------
+Epoch [9/50] Training loss: 1.1553	 Validation loss: 1.1641
+--------------------------------------------------
+Epoch [10/50] Training loss: 1.1491	 Validation loss: 1.1628
+--------------------------------------------------
+Epoch [11/50] Training loss: 1.1223	 Validation loss: 1.1618
+--------------------------------------------------
+Epoch [12/50] Training loss: 1.0892	 Validation loss: 1.1598
+--------------------------------------------------
+wandb: Network error (ConnectionError), entering retry loop.
+Epoch [13/50] Training loss: 1.1075	 Validation loss: 1.1590
+--------------------------------------------------
+Epoch [14/50] Training loss: 1.0834	 Validation loss: 1.1587
+--------------------------------------------------
+Epoch [15/50] Training loss: 1.0748	 Validation loss: 1.1583
+--------------------------------------------------
+Epoch [16/50] Training loss: 1.0505	 Validation loss: 1.1562
+--------------------------------------------------
+Epoch [17/50] Training loss: 1.0325	 Validation loss: 1.1553
+--------------------------------------------------
+Epoch [18/50] Training loss: 1.0641	 Validation loss: 1.1539
+--------------------------------------------------
+Epoch [19/50] Training loss: 1.0047	 Validation loss: 1.1520
+--------------------------------------------------
+Epoch [20/50] Training loss: 1.0075	 Validation loss: 1.1547
+--------------------------------------------------
+Epoch [21/50] Training loss: 0.9813	 Validation loss: 1.1538
+--------------------------------------------------
+Epoch [22/50] Training loss: 0.9444	 Validation loss: 1.1562
+--------------------------------------------------
+Epoch [23/50] Training loss: 0.9301	 Validation loss: 1.1535
+--------------------------------------------------
+Epoch [24/50] Training loss: 0.9052	 Validation loss: 1.1564
+--------------------------------------------------
+Epoch [25/50] Training loss: 0.9158	 Validation loss: 1.1575
+--------------------------------------------------
+Epoch [26/50] Training loss: 0.8401	 Validation loss: 1.1607
+--------------------------------------------------
+Epoch [27/50] Training loss: 0.8193	 Validation loss: 1.1771
+--------------------------------------------------
+Epoch [28/50] Training loss: 0.8376	 Validation loss: 1.1617
+--------------------------------------------------
+Epoch [29/50] Training loss: 0.7939	 Validation loss: 1.1968
+--------------------------------------------------
+Epoch [30/50] Training loss: 0.7858	 Validation loss: 1.1686
+--------------------------------------------------
+Epoch [31/50] Training loss: 0.7209	 Validation loss: 1.1688
+--------------------------------------------------
+Epoch [32/50] Training loss: 0.6763	 Validation loss: 1.1919
+--------------------------------------------------
+Epoch [33/50] Training loss: 0.6683	 Validation loss: 1.1916
+--------------------------------------------------
+Epoch [34/50] Training loss: 0.6597	 Validation loss: 1.1872
+--------------------------------------------------
+Epoch [35/50] Training loss: 0.5821	 Validation loss: 1.2796
+--------------------------------------------------
+Epoch [36/50] Training loss: 0.5836	 Validation loss: 1.2210
+--------------------------------------------------
+Epoch [37/50] Training loss: 0.5357	 Validation loss: 1.2049
+--------------------------------------------------
+Epoch [38/50] Training loss: 0.5511	 Validation loss: 1.3285
+--------------------------------------------------
+Epoch [39/50] Training loss: 0.4930	 Validation loss: 1.2349
+--------------------------------------------------
+Epoch [40/50] Training loss: 0.4588	 Validation loss: 1.3155
+--------------------------------------------------
+Epoch [41/50] Training loss: 0.3878	 Validation loss: 1.4160
+--------------------------------------------------
+Epoch [42/50] Training loss: 0.3668	 Validation loss: 1.3216
+--------------------------------------------------
+Epoch [43/50] Training loss: 0.4481	 Validation loss: 1.2806
+--------------------------------------------------
+Epoch [44/50] Training loss: 0.3874	 Validation loss: 1.5175
+--------------------------------------------------
+Epoch [45/50] Training loss: 0.3352	 Validation loss: 1.2644
+--------------------------------------------------
+Epoch [46/50] Training loss: 0.3065	 Validation loss: 1.6224
+--------------------------------------------------
+Epoch [47/50] Training loss: 0.3448	 Validation loss: 1.4850
+--------------------------------------------------
+Epoch [48/50] Training loss: 0.2314	 Validation loss: 1.4438
+--------------------------------------------------
+Epoch [49/50] Training loss: 0.2356	 Validation loss: 1.6735
+--------------------------------------------------
+[32m[I 2022-03-25 13:34:31,626][39m Trial 4 finished with value: 1.6326255400975545 and parameters: {'learning_rate': 9.936818122215599e-05, 'num_hidden_units_per_layer': 96, 'weight_decay': 7.059521602425159e-05, 'kernel_size': 9, 'num_epochs': 50, 'drop_out': 0.27527309914331194, 'batch_size': 40, 'reduced_seq_length': 200}. Best is trial 2 with value: 1.1736648678779602.
+Epoch [50/50] Training loss: 0.2729	 Validation loss: 1.6326
+--------------------------------------------------
+TRAINING COMPLETE
+Params: {'learning_rate': 1.1749386858013005e-05, 'num_hidden_units_per_layer': 32, 'weight_decay': 0.014263718729175002, 'kernel_size': 7, 'num_epochs': 20, 'drop_out': 0.4910996752280975, 'batch_size': 30, 'reduced_seq_length': 50, 'num_levels': 3, 'stride': 1, 'pos_weight': tensor([6.8261])}
