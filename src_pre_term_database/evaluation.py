@@ -404,3 +404,4 @@ if __name__ == "__main__":
 
     results_dict.update({'model_file_name': trained_model_file_name,
                          'hyper_opt_file_name': hyper_opt_results_file_name})
+    print(results_dict)

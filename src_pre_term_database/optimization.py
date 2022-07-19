@@ -1377,9 +1377,8 @@ class OptimizationStatefulLSTM(OptimizationLSTM):
 
                 # We manually reset the hidden states and cells after an entire sequence is processed
                 if t % self.num_sub_sequences == 0:
-                    print(
-                        f'The hidden states and cells are resetted at the beginning of epoch {epoch}, '
-                        f'batch {t} of train_loader')
+                    print(f'The hidden states and cells are resetted at the beginning of epoch {epoch}, '
+                          f'batch {t} of train_loader')
                     self.reset_states()
 
                 x_batch = x_batch.to(self.device)
@@ -4237,12 +4236,14 @@ class ObjectiveLSTMFeatureModel(object):
 
 
 def main(model_name: str, feature_name: str, study, features_to_use: List[str], add_static_data: bool, copies: bool):
+    # If dataset has not been created yet, run these lines:
     # df_signals = build_signal_dataframe(data_path, settings_path)
     # df_signals_new = create_filtered_channels(df_signals, ['channel_1', 'channel_2', 'channel_3'],
     #                                           [[0.34, 1], [0.08, 4], [0.3, 3], [0.3, 4]], fs=20, order=4)
     # df_signals_new = remove_first_n_samples_of_signals(df_signals_new, n=3600)
     # df_signals_new = remove_last_n_samples_of_signals(df_signals_new, n=3600)
 
+    # Load dataset from hard disk
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
 
     df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
