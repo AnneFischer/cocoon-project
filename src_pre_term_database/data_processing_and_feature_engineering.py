@@ -2069,21 +2069,3 @@ def create_final_train_and_test_feature_dataloaders(df_signals_new: pd.DataFrame
                              shuffle=False, drop_last=False)
 
     return train_val_loader, test_loader
-
-
-def combine_seq_and_static_data_tcn(df_static: pd.DataFrame, x_train: pd.DataFrame, x_val: pd.DataFrame,
-                                    x_test: pd.DataFrame, features_to_use_static: List[str], reduced_seq_length,
-                                    threshold_correlation: float = 0.85):
-
-    df_static_repeat = pd.DataFrame(np.repeat(df_static.values, reduced_seq_length, axis=0))
-    df_static_repeat.columns = df_static.columns
-
-    x_train_arr_static, y_train_arr_static = preprocess_static_data(df_static_repeat, x_train, x_train,
-                                                                    threshold_correlation=threshold_correlation)
-
-    x_val_arr_static, y_val_arr_static = preprocess_static_data(df_static_repeat, x_train, x_val,
-                                                                threshold_correlation=threshold_correlation)
-
-    x_test_arr_static, y_test_arr_static = preprocess_static_data(df_static_repeat, x_train, x_test,
-                                                                  threshold_correlation=threshold_correlation)
-
