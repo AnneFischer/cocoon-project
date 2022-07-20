@@ -15,8 +15,8 @@ settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/setti
 file_paths = read_settings(settings_path, 'file_paths')
 
 SIGNAL_COLUMN_NAMES = ['1', '1_DOCFILT-4-0.08-4', '1_DOCFILT-4-0.3-3', '1_DOCFILT-4-0.3-4',
-                      '2', '2_DOCFILT-4-0.08-4', '2_DOCFILT-4-0.3-3', '2_DOCFILT-4-0.3-4',
-                      '3', '3_DOCFILT-4-0.08-4', '3_DOCFILT-4-0.3-3', '3_DOCFILT-4-0.3-4']
+                       '2', '2_DOCFILT-4-0.08-4', '2_DOCFILT-4-0.3-3', '2_DOCFILT-4-0.3-4',
+                       '3', '3_DOCFILT-4-0.08-4', '3_DOCFILT-4-0.3-3', '3_DOCFILT-4-0.3-4']
 
 VARIABLE_CONSTANTS_LIST = ['RecID', 'Age', 'Parity', 'Abortions', 'Weight',
                            'Hypertension', 'Diabetes', 'Placental_position', 'Bleeding_first_trimester',

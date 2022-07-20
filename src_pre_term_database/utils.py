@@ -4,6 +4,7 @@ import json
 import os
 import numpy as np
 from itertools import combinations
+from matplotlib import pyplot as plt
 
 
 DEFAULT_CORRELATION_THRESHOLD = 0.85
