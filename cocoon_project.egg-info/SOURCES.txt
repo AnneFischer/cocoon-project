@@ -1,0 +1,7 @@
+README.md
+setup.py
+cocoon_project.egg-info/PKG-INFO
+cocoon_project.egg-info/SOURCES.txt
+cocoon_project.egg-info/dependency_links.txt
+cocoon_project.egg-info/requires.txt
+cocoon_project.egg-info/top_level.txt

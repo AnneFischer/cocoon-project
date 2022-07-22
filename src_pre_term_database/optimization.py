@@ -10,10 +10,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from src_pre_term_database.data_processing_and_feature_engineering import generate_feature_data_loaders, \
-    create_filtered_channels, train_val_test_split, remove_first_n_samples_of_signals, \
-    remove_last_n_samples_of_signals, preprocess_static_data
-from src_pre_term_database.load_dataset import build_signal_dataframe, build_clinical_information_dataframe, \
-    build_demographics_dataframe
+    train_val_test_split, preprocess_static_data
+from src_pre_term_database.load_dataset import build_clinical_information_dataframe, build_demographics_dataframe
 import constants as c
 import matplotlib.pyplot as plt
 import datetime
@@ -4236,13 +4234,6 @@ class ObjectiveLSTMFeatureModel(object):
 
 
 def main(model_name: str, feature_name: str, study, features_to_use: List[str], add_static_data: bool, copies: bool):
-    # If dataset has not been created yet, run these lines:
-    # df_signals = build_signal_dataframe(data_path, settings_path)
-    # df_signals_new = create_filtered_channels(df_signals, ['channel_1', 'channel_2', 'channel_3'],
-    #                                           [[0.34, 1], [0.08, 4], [0.3, 3], [0.3, 4]], fs=20, order=4)
-    # df_signals_new = remove_first_n_samples_of_signals(df_signals_new, n=3600)
-    # df_signals_new = remove_last_n_samples_of_signals(df_signals_new, n=3600)
-
     # Load dataset from hard disk
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
 

@@ -4,10 +4,8 @@ from src_pre_term_database.optimization import OptimizationTCNFeatureSequence, \
     OptimizationTCNFeatureSequenceCombinedCopies
 from src_pre_term_database.modeling import TCN, LSTMStatefulClassificationFeatureSequence, \
     LSTMCombinedModel, TCNCombinedModel, TCNCombinedModelCopies
-from src_pre_term_database.load_dataset import build_signal_dataframe, build_clinical_information_dataframe, \
-    build_demographics_dataframe
-from src_pre_term_database.data_processing_and_feature_engineering import create_filtered_channels, \
-    remove_first_n_samples_of_signals, remove_last_n_samples_of_signals, train_val_test_split, preprocess_static_data
+from src_pre_term_database.load_dataset import build_clinical_information_dataframe, build_demographics_dataframe
+from src_pre_term_database.data_processing_and_feature_engineering import train_val_test_split, preprocess_static_data
 from src_pre_term_database.utils import read_settings
 import torch
 import torch.nn as nn
@@ -153,12 +151,6 @@ def final_train_tcn_feature_sequence(X_train: pd.DataFrame, X_val: pd.DataFrame,
 
 
 def main(model_name: str, features_to_use: List[str], best_params: Dict, add_static_data: bool, copies: bool):
-    # df_signals = build_signal_dataframe(data_path, settings_path)
-    # df_signals_new = create_filtered_channels(df_signals, ['channel_1', 'channel_2', 'channel_3'],
-    #                                           [[0.34, 1], [0.08, 4], [0.3, 3], [0.3, 4]], fs=20, order=4)
-    # df_signals_new = remove_first_n_samples_of_signals(df_signals_new, n=3600)
-    # df_signals_new = remove_last_n_samples_of_signals(df_signals_new, n=3600)
-
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
 
     df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
