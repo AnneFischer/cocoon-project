@@ -1,38 +1,35 @@
 {
-  "lstm_samp_en": {
+  "lstm_sample_entropy": {
     "learning_rate": 0.00011392316579449135,
     "layer_dim": 2,
     "hidden_dim": 8,
     "weight_decay": 0.00010317203393969004,
-    "bidirectional": "True",
     "num_epochs": 3,
     "batch_size": 40,
     "feature_name": "sample_entropy",
     "drop_out_lstm": 0.28426873029685207
   },
-  "lstm_peak_freq": {
+  "lstm_peak_frequency": {
     "learning_rate": 0.0002803952978290381,
     "layer_dim": 3,
     "hidden_dim": 14,
     "weight_decay": 0.0021494237140683185,
-    "bidirectional": "True",
     "num_epochs": 3,
     "batch_size": 60,
     "feature_name": "peak_frequency",
     "drop_out_lstm": 0.20559825177135813
   },
-  "lstm_median_freq": {
+  "lstm_median_frequency": {
     "learning_rate": 0.003361896479667837,
     "layer_dim": 1,
     "hidden_dim": 5,
     "weight_decay": 1.3910165831132892e-05,
-    "bidirectional": "True",
     "num_epochs": 10,
     "batch_size": 20,
     "feature_name": "median_frequency",
     "drop_out_lstm": 0.0
   },
-  "tcn_samp_en": {
+  "tcn_sample_entropy": {
     "learning_rate": 0.0006109972573175081,
     "num_hidden_units_per_layer": 13,
     "weight_decay": 0.00765919873904176,
@@ -44,7 +41,7 @@
     "num_levels": 1,
     "stride": 1
   },
-  "tcn_peak_freq": {
+  "tcn_peak_frequency": {
     "learning_rate": 5.988662440373897e-05,
     "num_hidden_units_per_layer": 7,
     "weight_decay": 2.6879261626081322e-05,
@@ -56,7 +53,7 @@
     "num_levels": 1,
     "stride": 1
   },
-  "tcn_median_freq": {
+  "tcn_median_frequency": {
     "learning_rate": 0.014943689424263528,
     "num_hidden_units_per_layer": 5,
     "weight_decay": 0.009868045172213956,
@@ -68,7 +65,7 @@
     "num_levels": 1,
     "stride": 1
   },
-  "lstm_samp_en_with_static_data": {
+  "lstm_sample_entropy_with_static_data": {
     "learning_rate": 0.00025779584958839915,
     "layer_dim": 1,
     "hidden_dim_seq": 14,
@@ -78,7 +75,7 @@
     "batch_size": 50,
     "feature_name": "sample_entropy",
     "drop_out_lstm": 0.0},
-  "lstm_peak_freq_with_static_data": {
+  "lstm_peak_frequency_with_static_data": {
     "learning_rate": 0.008528755613393514,
     "layer_dim": 1,
     "hidden_dim_seq": 11,
@@ -88,7 +85,7 @@
     "batch_size": 40,
     "feature_name": "peak_frequency",
     "drop_out_lstm": 0.0},
-  "lstm_median_freq_with_static_data":  {
+  "lstm_median_frequency_with_static_data":  {
     "learning_rate": 5.609271537814585e-05,
     "layer_dim": 2,
     "hidden_dim_seq": 15,
@@ -98,7 +95,7 @@
     "batch_size": 60,
     "feature_name": "median_frequency",
     "drop_out_lstm": 0.16034432192312256},
-  "tcn_samp_en_with_static_data":  {
+  "tcn_sample_entropy_with_static_data":  {
     "learning_rate": 0.0021911688919452536,
     "num_hidden_units_per_layer": 6,
     "weight_decay": 0.009845277753430231,
@@ -110,7 +107,7 @@
     "feature_name": "sample_entropy",
     "num_levels": 1,
     "stride": 1},
-  "tcn_peak_freq_with_static_data":  {
+  "tcn_peak_frequency_with_static_data":  {
     "learning_rate": 0.0012328676965757456,
     "num_hidden_units_per_layer": 5,
     "weight_decay": 1.0901072682524733e-06,
@@ -122,7 +119,7 @@
     "feature_name": "peak_frequency",
     "num_levels": 1,
     "stride": 1},
-  "tcn_median_freq_with_static_data":  {
+  "tcn_median_frequency_with_static_data":  {
     "learning_rate": 0.0024069006268027846,
     "num_hidden_units_per_layer": 8,
     "weight_decay": 5.349125967482818e-06,

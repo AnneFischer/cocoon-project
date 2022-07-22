@@ -25,34 +25,43 @@ file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
 
 optional_model_dict = {
-    "lstm_samp_en_with_static_data":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(36, eps=1e-05, momentum=0.1,
-                                                        affine=True, track_running_stats=True),
+    "lstm_sample_entropy_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(36, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU(), nn.Linear(in_features=36, out_features=13, bias=True), nn.ReLU()),
          'bidirectional': True},
-    "lstm_peak_freq_with_static_data": {'optional_model':
-                                            nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
-                                                                         track_running_stats=True), nn.ReLU(),
-                                                          nn.Linear(in_features=29, out_features=18, bias=True),
-                                                          nn.ReLU()),
-                                        'bidirectional': True},
-    "lstm_median_freq_with_static_data": {'optional_model': nn.Sequential(nn.BatchNorm1d(36, eps=1e-05, momentum=0.1,
-                                                                                         affine=True,
-                                                                                         track_running_stats=True),
-                                                                          nn.ReLU()),
-                                          'bidirectional': True},
-    "tcn_samp_en_with_static_data": {'optional_model': nn.Sequential(nn.BatchNorm1d(21, eps=1e-05, momentum=0.1,
-                                                                                    affine=True,
-                                                                                    track_running_stats=True),
-                                                                     nn.ReLU())},
-    "tcn_peak_freq_with_static_data": {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1,
-                                                                                      affine=True,
-                                                                                      track_running_stats=True),
-                                                                       nn.ReLU())},
-    "tcn_median_freq_with_static_data": {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1,
-                                                                                        affine=True,
-                                                                                        track_running_stats=True),
-                                                                         nn.ReLU())}
+    "lstm_peak_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU(),
+                                         nn.Linear(in_features=29, out_features=18, bias=True),
+                                         nn.ReLU()),
+         'bidirectional': True},
+    "lstm_median_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(36, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU()),
+         'bidirectional': True},
+    "tcn_sample_entropy_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(21, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "tcn_peak_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "tcn_median_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())}
+}
+
+bidirectional_lstm_dict = {
+    "lstm_sample_entropy": {'bidirectional': True},
+    "lstm_peak_frequency": {'bidirectional': True},
+    "lstm_median_frequency": {'bidirectional': True},
+    "lstm_sample_entropy_with_static_data": {'bidirectional': True},
+    "lstm_peak_frequency_with_static_data": {'bidirectional': True},
+    "lstm_median_frequency_with_static_data": {'bidirectional': True}
 }
 
 
@@ -350,7 +359,7 @@ def create_interval_matrix(all_test_results: List, rec_ids_test: List[int], num_
     return df_interval_matrix
 
 
-def main(trained_model_file_name: str, features_to_use: List[str], best_params: Dict):
+def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], best_params: Dict):
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
 
     df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
@@ -379,7 +388,7 @@ def main(trained_model_file_name: str, features_to_use: List[str], best_params: 
     if not FLAGS.add_static_data:
         num_static_features = 0
 
-    if FLAGS.model_name == 'tcn':
+    if FLAGS.model == 'tcn':
         all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_tcn_feature_sequence(df_signals,
                                                                                                    df_clinical_information,
                                                                                                    df_static_information,
@@ -391,7 +400,7 @@ def main(trained_model_file_name: str, features_to_use: List[str], best_params: 
                                                                                                    copies=FLAGS.use_copies_for_static_data,
                                                                                                    num_static_features=num_static_features)
 
-    elif FLAGS.model_name == 'lstm':
+    elif FLAGS.model == 'lstm':
         all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_lstm_feature_sequence(df_signals,
                                                                                                     df_clinical_information,
                                                                                                     df_static_information,
@@ -405,25 +414,32 @@ def main(trained_model_file_name: str, features_to_use: List[str], best_params: 
     return all_test_preds, all_test_probs, rec_ids_test, results_dict
 
 
-def get_additional_args(parser: argparse.ArgumentParser()):
-    if parser.model == 'tcn' and parser.add_static_data:
-        parser.add_argument('--use_copies_for_static_data', type=bool, default=False, required=False,
-                            help="If add_static_data=True and model='tcn', you can choose to model the static clinical " 
-                                 "data with copies along each time step of the sequential data. Meaning, if there are " 
-                                 "10 time steps in the seq data then the static data is also copied for 10 time steps." 
+def get_additional_args(parser):
+    """For now the copies option is only implemented for the TCN model, but we have not trained a final model for it
+    (only did the optimization). Therefore, we do add a flag for the copies (as we do need to pass this as an argument
+    in the evaluate_tcn_feature_sequence function), but we cannot evaluate this option."""
+    args = parser.parse_args()
+    if args.add_static_data:
+        parser.add_argument('--use_copies_for_static_data', action='store_true',
+                            help="If add_static_data=True and model='tcn', you can choose to model the static clinical "
+                                 "data with copies along each time step of the sequential data. Meaning, if there are "
+                                 "10 time steps in the seq data then the static data is also copied for 10 time steps."
                                  "This is currently only implemented for the tcn model. Default is False.")
+        parser.set_defaults(use_copies_for_static_data=False)
+    else:
+        parser.add_argument('--use_copies_for_static_data', action='store_true',
+                            help="If add_static_data=True and model='tcn', you can choose to model the static clinical "
+                                 "data with copies along each time step of the sequential data. Meaning, if there are "
+                                 "10 time steps in the seq data then the static data is also copied for 10 time steps."
+                                 "This is currently only implemented for the tcn model. Default is False.")
+        parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false')
+        parser.set_defaults(use_copies_for_static_data=False)
+
     return parser
 
 
 if __name__ == "__main__":
-    model_name = 'lstm'
     out_path_model = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model'
-    trained_model_file_name = '2022-06-07_11-13_best_model_lstm_feature_sample_entropy_combined_seq_final_train.pth'
-    best_params_model_name = 'lstm_samp_en_with_static_data'
-
-    best_params: dict = read_settings(settings_path, 'best_params')
-    best_params = best_params[best_params_model_name]
-    best_params.update(optional_model_dict[best_params_model_name])
 
     # Command line arguments
     parser = argparse.ArgumentParser()
@@ -437,20 +453,38 @@ if __name__ == "__main__":
                              "'median_frequency'",
                         choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
 
-    parser.add_argument('--add_static_data', type=bool, required=True, default=False,
-                        help="Add static clinical data to model",
-                        choices=[False, True])
+    parser.add_argument('--add_static_data', action='store_true')
+    parser.add_argument('--no_static_data', dest='add_static_data', action='store_false')
+    parser.set_defaults(add_static_data=True)
 
     parser = get_additional_args(parser)
 
     FLAGS, unparsed = parser.parse_known_args()
 
-    add_static_data = True
-    copies = False
+    if FLAGS.add_static_data:
+        best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data'
+
+    elif not FLAGS.add_static_data:
+        best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}'
+
+    best_params: dict = read_settings(settings_path, 'best_params')
+    best_params = best_params[best_params_model_name]
+
+    final_model: dict = read_settings(settings_path, 'final_models')
+    final_model = final_model[best_params_model_name]
+
+    # If static data is added to the model, add the optional model part to the best_params dict
+    if FLAGS.add_static_data:
+        best_params.update(optional_model_dict[best_params_model_name])
+
+    # Add bidirectional as a boolean to the best_params dict for the LSTM models
+    if FLAGS.model == 'lstm':
+        best_params.update(bidirectional_lstm_dict[best_params_model_name])
+
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
 
-    all_test_preds, all_test_probs, rec_ids_test, results_dict = main(trained_model_file_name, features_to_use,
+    all_test_preds, all_test_probs, rec_ids_test, results_dict = main(final_model, features_to_use,
                                                                       best_params)
 
-    results_dict.update({'model_file_name': trained_model_file_name})
+    results_dict.update({'model_file_name': final_model})
     print(results_dict)

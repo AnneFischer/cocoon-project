@@ -1,0 +1,14 @@
+{
+  "lstm_sample_entropy": "2022-05-16_15-47_best_model_lstm_feature_sample_entropy_seq_final_train.pth",
+  "lstm_peak_frequency": "2022-05-13_10-27_best_model_lstm_feature_peak_frequency_seq_final_train.pth",
+  "lstm_median_frequency": "2022-05-13_13-56_best_model_lstm_feature_median_frequency_seq_final_train.pth",
+  "tcn_sample_entropy": "2022-05-13_10-05_best_model_tcn_feature_sample_entropy_seq_final_train.pth",
+  "tcn_peak_frequency": "2022-05-12_16-20_best_model_tcn_feature_peak_frequency_seq_final_train.pth",
+  "tcn_median_frequency": "2022-05-12_16-14_best_model_tcn_feature_median_frequency_seq_final_train.pth",
+  "lstm_sample_entropy_with_static_data": "2022-06-07_11-13_best_model_lstm_feature_sample_entropy_combined_seq_final_train.pth",
+  "lstm_peak_frequency_with_static_data": "2022-06-03_14-52_best_model_lstm_feature_peak_frequency_combined_seq_final_train.pth",
+  "lstm_median_frequency_with_static_data": "2022-06-03_14-54_best_model_lstm_feature_median_frequency_combined_seq_final_train.pth",
+  "tcn_sample_entropy_with_static_data": "2022-06-03_14-21_best_model_tcn_feature_sample_entropy_combined_seq_final_train.pth",
+  "tcn_peak_frequency_with_static_data": "2022-06-03_14-10_best_model_tcn_feature_peak_frequency_combined_seq_final_train.pth",
+  "tcn_median_frequency_with_static_data": "2022-06-03_14-32_best_model_tcn_feature_median_frequency_combined_seq_final_train.pth"
+}
