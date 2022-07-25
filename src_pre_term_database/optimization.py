@@ -1,8 +1,5 @@
-import sys
 import pandas as pd
-
-sys.path.append('/Users/AFischer/PycharmProjects/cocoon-project')
-sys.path.append('/Users/AFischer/PycharmProjects/cocoon-project/src_pre_term_database')
+import sys
 from src_pre_term_database.modeling import TCN, get_num_levels_based_on_receptive_field, \
     LSTMStatefulClassificationFeatureSequence, LSTMCombinedModel, TCNCombinedModel, TCNCombinedModelCopies
 import numpy as np
@@ -25,6 +22,7 @@ from timeit import default_timer as timer
 from sklearn.preprocessing import LabelEncoder
 import math
 from typing import List
+import argparse
 
 settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/settings'
 
@@ -3746,8 +3744,6 @@ class ObjectiveLSTMFeatureCombinedModel(object):
                                                               params=params)
         optional_model_part.to(device)
 
-        print(f'Params: {params}')
-
         model_lstm_combined = LSTMCombinedModel(input_dim_seq=input_dim_seq, hidden_dim_seq=params['hidden_dim_seq'],
                                                 input_dim_static=input_dim_static,
                                                 hidden_dim_static=params['hidden_dim_static'],
@@ -3889,8 +3885,6 @@ class ObjectiveTcnFeatureCombinedModelWithCopies(object):
                                                               params=params)
         optional_model_part.to(device)
 
-        print(f'Params: {params}')
-
         model_tcn_combined = TCNCombinedModelCopies(input_channels, n_classes, channel_sizes, stride=params['stride'],
                                                     kernel_size=params['kernel_size'], dropout=params['drop_out'],
                                                     hidden_dim_combined=params['num_hidden_units_per_layer'],
@@ -4028,8 +4022,6 @@ class ObjectiveTcnFeatureCombinedModel(object):
                                                               params=params)
         optional_model_part.to(device)
 
-        print(f'Params: {params}')
-
         model_tcn_combined = TCNCombinedModel(input_channels, n_classes, channel_sizes, stride=params['stride'],
                                               kernel_size=params['kernel_size'], dropout=params['drop_out'],
                                               input_dim_static=input_dim_static,
@@ -4109,7 +4101,6 @@ class ObjectiveTcnFeatureModel(object):
 
         # For now we fixate the stride at 1
         params['stride'] = 1
-        print(f'Params: {params}')
 
         model_tcn = TCN(input_channels, n_classes, channel_sizes, stride=params['stride'],
                         kernel_size=params['kernel_size'], dropout=params['drop_out'])
@@ -4177,8 +4168,6 @@ class ObjectiveLSTMFeatureModel(object):
         else:
             params['drop_out_lstm'] = trial.suggest_uniform('drop_out_lstm', 0.1, 0.5)
 
-        print(f'Params: {params}')
-
         n_classes = 1
         input_channels = len(self.features_to_use)
         reduced_sequence_length = 50
@@ -4233,7 +4222,8 @@ class ObjectiveLSTMFeatureModel(object):
         return loss
 
 
-def main(model_name: str, feature_name: str, study, features_to_use: List[str], add_static_data: bool, copies: bool):
+def main(model_name: str, feature_name: str, study, features_to_use: List[str],
+         add_static_data: bool, copies: bool, output_path: str, n_trials: int):
     # Load dataset from hard disk
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
 
@@ -4260,13 +4250,13 @@ def main(model_name: str, feature_name: str, study, features_to_use: List[str], 
 
         num_static_features = len(selected_columns_fit_static)
         if not copies:
-            out_file = f'/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model/hyper_parameter_opt/{model_name}_data_trials_feature_{feature_name}_combined_{current_date_and_time}.csv'
+            out_file = f'{output_path}/{model_name}_data_trials_feature_{feature_name}_combined_{current_date_and_time}.csv'
         if copies:
-            out_file = f'/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model/hyper_parameter_opt/{model_name}_data_trials_feature_{feature_name}_combined_copies_{current_date_and_time}.csv'
+            out_file = f'{output_path}/{model_name}_data_trials_feature_{feature_name}_combined_copies_{current_date_and_time}.csv'
 
     if not add_static_data:
         num_static_features = 0
-        out_file = f'/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model/hyper_parameter_opt/{model_name}_data_trials_feature_{feature_name}_{current_date_and_time}.csv'
+        out_file = f'{output_path}/{model_name}_data_trials_feature_{feature_name}_{current_date_and_time}.csv'
 
     # File to save results
     of_connection = open(out_file, 'w')
@@ -4275,8 +4265,6 @@ def main(model_name: str, feature_name: str, study, features_to_use: List[str], 
     # Write the headers to the file
     writer.writerow(['loss', 'params', 'train_time'])
     of_connection.close()
-
-    out_path_model = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model'
 
     if model_name == 'tcn' and not add_static_data:
         objective = ObjectiveTcnFeatureModel(df_signals, df_clinical_information, df_static_information, X_train, X_val,
@@ -4310,37 +4298,71 @@ def main(model_name: str, feature_name: str, study, features_to_use: List[str], 
                                                       features_to_use=features_to_use, add_static_data=add_static_data,
                                                       num_static_features=num_static_features, out_file=out_file)
 
-    study.optimize(objective, n_trials=50)
+    study.optimize(objective, n_trials=n_trials)
     print(study.best_trial)
 
     if add_static_data and not copies:
         joblib.dump(study,
-                    f'{out_path_model}/hyper_opt_{model_name}_feature_{feature_name}_combined_{current_date_and_time}.pkl')
+                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_combined_{current_date_and_time}.pkl')
 
     if add_static_data and copies:
         joblib.dump(study,
-                    f'{out_path_model}/hyper_opt_{model_name}_feature_{feature_name}_combined_copies_{current_date_and_time}.pkl')
+                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_combined_copies_{current_date_and_time}.pkl')
 
     if not add_static_data:
         joblib.dump(study,
-                    f'{out_path_model}/hyper_opt_{model_name}_feature_{feature_name}_{current_date_and_time}.pkl')
+                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_{current_date_and_time}.pkl')
 
 
 if __name__ == "__main__":
     # EHG data to use for modelling
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
-    # Either 'lstm' or 'tcn'
-    model_name = 'tcn'
-    # Either 'sample_entropy', 'peak_frequency', 'median_frequency'
-    feature_name = 'median_frequency'
-    # Either True or False -> Add static clinical data for modelling
-    add_static_data = True
-    # Either True or False -> copy static data along the time steps and in effect create a multivariate time series
-    # # with both the time series and static data treated as time series or process static data independently
-    copies = True
+    output_path = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model/hyper_parameter_opt/'
+
+    # Command line arguments
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--model', type=str, required=True,
+                        help="Select what model to use: 'lstm' or 'tcn'",
+                        choices=['tcn', 'lstm'])
+
+    parser.add_argument('--feature_name', type=str, required=True,
+                        help="Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or "
+                             "'median_frequency'",
+                        choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
+
+    parser.add_argument('--add_static_data', action='store_true')
+    parser.add_argument('--no_static_data', dest='add_static_data', action='store_false')
+    parser.set_defaults(add_static_data=True)
+
+    parser.add_argument('--use_copies_for_static_data', action='store_true',
+                        required=('--add_static_data' in sys.argv and '--no_copies_for_static_data' not in sys.argv))
+    parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
+                        required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv))
+    parser.set_defaults(use_copies_for_static_data=False)
+
+    parser.add_argument('--new_study', action='store_true')
+    parser.add_argument('--existing_study', dest='new_study', action='store_false')
+    parser.set_defaults(new_study=True)
+
+    FLAGS, _ = parser.parse_known_args()
 
     # If new study
-    study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler())
+    if FLAGS.new_study:
+        study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler())
     # If continue with study
-    # study = joblib.load("/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model/hyper_opt_tcn_feature_sample_entropy_combined_2022-05-24_21-39.pkl")
-    main(model_name, feature_name, study, features_to_use, add_static_data, copies)
+    if not FLAGS.new_study:
+        parser.add_argument('--study_name', required=('--existing_study' in sys.argv), type=str,
+                            help="Provide the name of the file that contains the previously run optimization. "
+                                 "Must be a .pkl file.")
+        FLAGS, _ = parser.parse_known_args()
+        study = joblib.load(f"{output_path}/{FLAGS.study_name}")
+
+    parser.add_argument('--n_trials', type=int, required=True, default=50,
+                        help="Number of runs you want to do for hyperoptimization.")
+
+    FLAGS, _ = parser.parse_known_args()
+    print(FLAGS)
+
+    main(FLAGS.model, FLAGS.feature_name, study, features_to_use, FLAGS.add_static_data,
+         FLAGS.use_copies_for_static_data, output_path, FLAGS.n_trials)

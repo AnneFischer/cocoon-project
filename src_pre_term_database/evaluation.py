@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 from src_pre_term_database.optimization import OptimizationTCNFeatureSequence, \
     OptimizationStatefulFeatureSequenceLSTM, OptimizationCombinedLSTM, OptimizationTCNFeatureSequenceCombined, \
     OptimizationTCNFeatureSequenceCombinedCopies
@@ -414,29 +415,6 @@ def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], 
     return all_test_preds, all_test_probs, rec_ids_test, results_dict
 
 
-def get_additional_args(parser):
-    """For now the copies option is only implemented for the TCN model, but we have not trained a final model for it
-    (only did the optimization). Therefore, we do add a flag for the copies (as we do need to pass this as an argument
-    in the evaluate_tcn_feature_sequence function), but we cannot evaluate this option."""
-    args = parser.parse_args()
-    if args.add_static_data:
-        parser.add_argument('--use_copies_for_static_data', action='store_true',
-                            help="If add_static_data=True and model='tcn', you can choose to model the static clinical "
-                                 "data with copies along each time step of the sequential data. Meaning, if there are "
-                                 "10 time steps in the seq data then the static data is also copied for 10 time steps."
-                                 "This is currently only implemented for the tcn model. Default is False.")
-        parser.set_defaults(use_copies_for_static_data=False)
-    else:
-        parser.add_argument('--use_copies_for_static_data', action='store_true',
-                            help="If add_static_data=True and model='tcn', you can choose to model the static clinical "
-                                 "data with copies along each time step of the sequential data. Meaning, if there are "
-                                 "10 time steps in the seq data then the static data is also copied for 10 time steps."
-                                 "This is currently only implemented for the tcn model. Default is False.")
-        parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false')
-        parser.set_defaults(use_copies_for_static_data=False)
-
-    return parser
-
 
 if __name__ == "__main__":
     out_path_model = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model'
@@ -457,9 +435,15 @@ if __name__ == "__main__":
     parser.add_argument('--no_static_data', dest='add_static_data', action='store_false')
     parser.set_defaults(add_static_data=True)
 
-    parser = get_additional_args(parser)
+    # For now only --no_copies_for_static_data is implemented
+    parser.add_argument('--use_copies_for_static_data', action='store_true',
+                        required=('--add_static_data' in sys.argv and '--no_copies_for_static_data' not in sys.argv))
+    parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
+                        required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv))
+    parser.set_defaults(use_copies_for_static_data=False)
 
     FLAGS, unparsed = parser.parse_known_args()
+    print(FLAGS)
 
     if FLAGS.add_static_data:
         best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data'
