@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 from src_pre_term_database.optimization import OptimizationTCNFeatureSequence, \
     OptimizationStatefulFeatureSequenceLSTM, OptimizationCombinedLSTM, OptimizationTCNFeatureSequenceCombined, \
     OptimizationTCNFeatureSequenceCombinedCopies
@@ -122,7 +123,8 @@ def calculate_auc_ap_second_largest_values(df_interval_preds: pd.DataFrame, df_i
 def evaluate_tcn_feature_sequence(df_signals: pd.DataFrame, df_clinical_information: pd.DataFrame,
                                   df_static_information: pd.DataFrame, X_train_val: pd.DataFrame,
                                   X_test: pd.DataFrame, trained_model_file_name: str, features_to_use: List[str],
-                                  best_params: Dict, add_static_data: bool, copies: bool, num_static_features: int):
+                                  best_params: Dict, add_static_data: bool, copies: bool, num_static_features: int,
+                                  output_path: str):
     n_classes = 1
     reduced_sequence_length = 50
     sub_sequence_length = 10
@@ -187,8 +189,7 @@ def evaluate_tcn_feature_sequence(df_signals: pd.DataFrame, df_clinical_informat
                                                                           add_static_data=add_static_data,
                                                                           test_phase=True)
 
-    out_path_model = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model'
-    ck_point = torch.load(f'{out_path_model}/{trained_model_file_name}', map_location=torch.device('cpu'))
+    ck_point = torch.load(f'{output_path}/{trained_model_file_name}', map_location=torch.device('cpu'))
 
     if not add_static_data:
         all_test_preds, all_test_probs, test_labels, results_dict = opt_tcn.evaluate(custom_test_loader_orig, ck_point)
@@ -209,8 +210,8 @@ def evaluate_tcn_feature_sequence(df_signals: pd.DataFrame, df_clinical_informat
 def evaluate_lstm_feature_sequence(df_signals: pd.DataFrame, df_clinical_information: pd.DataFrame,
                                    df_static_information: pd.DataFrame, X_train_val: pd.DataFrame,
                                    X_test: pd.DataFrame, trained_model_file_name: str, features_to_use: List[str],
-                                   best_params: Dict, add_static_data: bool, num_static_features: int):
-
+                                   best_params: Dict, add_static_data: bool, num_static_features: int,
+                                   output_path: str):
     n_classes = 1
     input_channels = len(features_to_use)
     reduced_sequence_length = 50
@@ -249,8 +250,7 @@ def evaluate_lstm_feature_sequence(df_signals: pd.DataFrame, df_clinical_informa
     optimizer = optim.Adam(model_lstm.parameters(), lr=best_params['learning_rate'],
                            weight_decay=best_params['weight_decay'])
 
-    out_path_model = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model'
-    ck_point = torch.load(f'{out_path_model}/{trained_model_file_name}', map_location=torch.device('cpu'))
+    ck_point = torch.load(f'{output_path}/{trained_model_file_name}', map_location=torch.device('cpu'))
 
     custom_test_loader_orig, rec_ids_test = generate_feature_data_loaders(None, df_signals, df_clinical_information,
                                                                           df_static_information,
@@ -359,7 +359,7 @@ def create_interval_matrix(all_test_results: List, rec_ids_test: List[int], num_
     return df_interval_matrix
 
 
-def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], best_params: Dict):
+def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], best_params: Dict, output_path: str):
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
 
     df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
@@ -398,7 +398,8 @@ def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], 
                                                                                                    best_params,
                                                                                                    add_static_data=FLAGS.add_static_data,
                                                                                                    copies=FLAGS.use_copies_for_static_data,
-                                                                                                   num_static_features=num_static_features)
+                                                                                                   num_static_features=num_static_features,
+                                                                                                   output_path=output_path)
 
     elif FLAGS.model == 'lstm':
         all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_lstm_feature_sequence(df_signals,
@@ -409,40 +410,25 @@ def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], 
                                                                                                     features_to_use,
                                                                                                     best_params,
                                                                                                     add_static_data=FLAGS.add_static_data,
-                                                                                                    num_static_features=num_static_features)
+                                                                                                    num_static_features=num_static_features,
+                                                                                                    output_path=output_path)
 
     return all_test_preds, all_test_probs, rec_ids_test, results_dict
 
 
-def get_additional_args(parser):
-    """For now the copies option is only implemented for the TCN model, but we have not trained a final model for it
-    (only did the optimization). Therefore, we do add a flag for the copies (as we do need to pass this as an argument
-    in the evaluate_tcn_feature_sequence function), but we cannot evaluate this option."""
-    args = parser.parse_args()
-    if args.add_static_data:
-        parser.add_argument('--use_copies_for_static_data', action='store_true',
-                            help="If add_static_data=True and model='tcn', you can choose to model the static clinical "
-                                 "data with copies along each time step of the sequential data. Meaning, if there are "
-                                 "10 time steps in the seq data then the static data is also copied for 10 time steps."
-                                 "This is currently only implemented for the tcn model. Default is False.")
-        parser.set_defaults(use_copies_for_static_data=False)
-    else:
-        parser.add_argument('--use_copies_for_static_data', action='store_true',
-                            help="If add_static_data=True and model='tcn', you can choose to model the static clinical "
-                                 "data with copies along each time step of the sequential data. Meaning, if there are "
-                                 "10 time steps in the seq data then the static data is also copied for 10 time steps."
-                                 "This is currently only implemented for the tcn model. Default is False.")
-        parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false')
-        parser.set_defaults(use_copies_for_static_data=False)
-
-    return parser
-
-
 if __name__ == "__main__":
-    out_path_model = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model'
+    out_path_model = file_paths['output_path'] + "/" + "model"
 
     # Command line arguments
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Evaluate the final model on test set using the final trained model'
+                                                 'that is obtained after running final_train.py. The performance is'
+                                                 'given in terms of AUC and AP. The optimal hyperparameters have to be '
+                                                 'put in the best_params.json file and the optional_model part has to '
+                                                 'be put in the optional_model_dict and bidirectional_lstm_dict, which '
+                                                 'are placed at the top of this evaluation.py file. The name of your '
+                                                 'final model has to be specified in the final_models.json file and at '
+                                                 'the top of this main function you can specify in which folder your '
+                                                 'final model is saved.')
 
     parser.add_argument('--model', type=str, required=True,
                         help="Select what model to use: 'lstm' or 'tcn'",
@@ -453,13 +439,34 @@ if __name__ == "__main__":
                              "'median_frequency'",
                         choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
 
-    parser.add_argument('--add_static_data', action='store_true')
-    parser.add_argument('--no_static_data', dest='add_static_data', action='store_false')
+    # Make a dependency such that it is required to have either the --add_static_data or the --no_static_data flag
+    parser.add_argument('--add_static_data', action='store_true',
+                        required=('--model' in sys.argv and '--no_static_data' not in sys.argv),
+                        help="Add static clinical data to the model. Use either the --add_static_data or the"
+                             "--no_static_data flag")
+    parser.add_argument('--no_static_data', dest='add_static_data', action='store_false',
+                        required=('--model' in sys.argv and '--add_static_data' not in sys.argv),
+                        help="Use only the EHG data for modeling. Use either the --add_static_data or the"
+                             "--no_static_data flag")
     parser.set_defaults(add_static_data=True)
 
-    parser = get_additional_args(parser)
+    # Make a dependency such that it is required to have either the --use_copies_for_static_data or the
+    # --no_copies_for_static_data flag if the --add_static_data flag is present
+    parser.add_argument('--use_copies_for_static_data', action='store_true',
+                        required=('--add_static_data' in sys.argv and '--no_copies_for_static_data' not in sys.argv),
+                        help="The static data is now treated as a time series, were each (static) value of each "
+                             "variable is copied along the time steps of the EHG time series data." 
+                             "Meaning, if there are 10 time steps in the seq data, then the static data is also "
+                             "copied for 10 time steps.")
+    parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
+                        required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv),
+                        help="The static data is now treated as single values that will be concatenated separately to "
+                             "the time series data after the time series data has been processed. Use either the "
+                             "--use_copies_for_static_data or the --no_copies_for_static_data flag.")
+    parser.set_defaults(use_copies_for_static_data=False)
 
     FLAGS, unparsed = parser.parse_known_args()
+    print(FLAGS)
 
     if FLAGS.add_static_data:
         best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data'
@@ -484,7 +491,13 @@ if __name__ == "__main__":
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
 
     all_test_preds, all_test_probs, rec_ids_test, results_dict = main(final_model, features_to_use,
-                                                                      best_params)
+                                                                      best_params, out_path_model)
 
     results_dict.update({'model_file_name': final_model})
     print(results_dict)
+
+    with open(f'{out_path_model}/{final_model}_results.csv', 'w') as f:
+        for key in results_dict.keys():
+            f.write("%s, %s\n" % (key, results_dict[key]))
+
+    print(f'Results are saved at: {out_path_model}/{final_model}_results.csv')

@@ -579,7 +579,9 @@ class LSTMStatefulClassificationFeatureSequence(nn.Module):
 
 class TCNCombinedModelCopies(nn.Module):
     """ Model that combines both sequential and static data. Sequential data is processed according to a
-    TCN model and hereafter the sequential and static data are concatenated and pushed through a linear layer.
+    TCN model and hereafter the sequential and static data are concatenated and pushed through a linear layer. Static
+    data is treated as a time series, were each value for each static variable is copied along the length of
+    the time series EHG data.
 
     Parameters
     ----------
