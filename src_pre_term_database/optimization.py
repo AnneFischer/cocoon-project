@@ -23,6 +23,7 @@ from sklearn.preprocessing import LabelEncoder
 import math
 from typing import List
 import argparse
+import os
 
 settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/settings'
 
@@ -1873,13 +1874,11 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
 
             # At the beginning of every epoch the rec_ids in X_train are shuffled such that
             # the batches contain different rec ids in each epoch
-            train_val_loader = generate_feature_data_loaders(trial, df_signals,
-                                                             df_clinical_information, df_static_information,
-                                                             X_train_val, X_train_val, params,
-                                                             features_to_use,
-                                                             feature_name=feature_name,
-                                                             reduced_seq_length=50, sub_seq_length=10,
-                                                             fs=20, shuffle=True, add_static_data=add_static_data,
+            train_val_loader = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
+                                                             df_static_information, X_train_val, X_train_val, params,
+                                                             features_to_use, feature_name=feature_name,
+                                                             reduced_seq_length=50, sub_seq_length=10, fs=20,
+                                                             shuffle=True, add_static_data=add_static_data,
                                                              test_phase=False)
             for train_loader in train_val_loader:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
@@ -2555,7 +2554,6 @@ class OptimizationTCNFeatureSequenceCombined:
     num_sub_sequences : int
         Number of sub-sequences that make up an entire sequence.
     """
-
     def __init__(self, model, loss_fn, optimizer, num_sub_sequences, device):
         super().__init__()
         self.model = model
@@ -4317,10 +4315,16 @@ def main(model_name: str, feature_name: str, study, features_to_use: List[str],
 if __name__ == "__main__":
     # EHG data to use for modelling
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
-    output_path = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model/hyper_parameter_opt/'
+    output_path = os.path.join(file_paths['output_path'], 'model/hyper_parameter_opt/')
 
     # Command line arguments
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Hyperoptimization based on Bayesian Optimization using the Optuna '
+                                                 'package. Hyperparameter spaces are defined in the '
+                                                 'ObjectiveLSTMFeatureCombinedModel, '
+                                                 'ObjectiveTcnFeatureCombinedModelWithCopies, '
+                                                 'ObjectiveTcnFeatureCombinedModel, ObjectiveTcnFeatureModel and '
+                                                 'ObjectiveLSTMFeatureModel classes. The output path where the results '
+                                                 'will be saved needs to be defined in this main function.')
 
     parser.add_argument('--model', type=str, required=True,
                         help="Select what model to use: 'lstm' or 'tcn'",
@@ -4331,38 +4335,57 @@ if __name__ == "__main__":
                              "'median_frequency'",
                         choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
 
-    parser.add_argument('--add_static_data', action='store_true')
-    parser.add_argument('--no_static_data', dest='add_static_data', action='store_false')
+    # Make a dependency such that it is required to have either the --add_static_data or the --no_static_data flag
+    parser.add_argument('--add_static_data', action='store_true',
+                        required=('--model' in sys.argv and '--no_static_data' not in sys.argv),
+                        help="Add static clinical data to the model. Use either the --add_static_data or the"
+                             "--no_static_data flag")
+    parser.add_argument('--no_static_data', dest='add_static_data', action='store_false',
+                        required=('--model' in sys.argv and '--add_static_data' not in sys.argv),
+                        help="Use only the EHG data for modeling. Use either the --add_static_data or the"
+                             "--no_static_data flag")
     parser.set_defaults(add_static_data=True)
 
+    # Make a dependency such that it is required to have either the --use_copies_for_static_data or the
+    # --no_copies_for_static_data flag if the --add_static_data flag is present
     parser.add_argument('--use_copies_for_static_data', action='store_true',
-                        required=('--add_static_data' in sys.argv and '--no_copies_for_static_data' not in sys.argv))
+                        required=('--add_static_data' in sys.argv and '--no_copies_for_static_data' not in sys.argv),
+                        help="The static data is now treated as a time series, were each (static) value of each "
+                             "variable is copied along the time steps of the EHG time series data." 
+                             "Meaning, if there are 10 time steps in the seq data, then the static data is also "
+                             "copied for 10 time steps.")
     parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
-                        required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv))
+                        required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv),
+                        help="The static data is now treated as single values that will be concatenated separately to "
+                             "the time series data after the time series data has been processed. Use either the "
+                             "--use_copies_for_static_data or the --no_copies_for_static_data flag.")
     parser.set_defaults(use_copies_for_static_data=False)
 
-    parser.add_argument('--new_study', action='store_true')
-    parser.add_argument('--existing_study', dest='new_study', action='store_false')
+    parser.add_argument('--new_study', action='store_true',
+                        required=('--existing_study' not in sys.argv),
+                        help="Use this flag if you want to create a new study to do hyperparameter optimization. "
+                             "Use either the --new_study or --existing_study flag.")
+    parser.add_argument('--existing_study', dest='new_study', action='store_false',
+                        help="Use this flag if you want to continue with a previously run study. You should also "
+                             "specify --study_name 'name_of_your_study_file' when using the --existing_study flag."
+                             "Use either the --new_study or --existing_study flag.")
     parser.set_defaults(new_study=True)
 
+    parser.add_argument('--study_name', required=('--existing_study' in sys.argv), type=str,
+                        help="Provide the name of the file that contains the previously run optimization. "
+                             "Must be a .pkl file. Usage: --study_name 'name_of_your_study_file.pkl'")
+    parser.add_argument('--n_trials', type=int, required=True, default=50,
+                        help="Number of runs you want to do for hyperoptimization. Default is 50 runs.")
+
     FLAGS, _ = parser.parse_known_args()
+    print(FLAGS)
 
     # If new study
     if FLAGS.new_study:
         study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler())
     # If continue with study
     if not FLAGS.new_study:
-        parser.add_argument('--study_name', required=('--existing_study' in sys.argv), type=str,
-                            help="Provide the name of the file that contains the previously run optimization. "
-                                 "Must be a .pkl file.")
-        FLAGS, _ = parser.parse_known_args()
         study = joblib.load(f"{output_path}/{FLAGS.study_name}")
-
-    parser.add_argument('--n_trials', type=int, required=True, default=50,
-                        help="Number of runs you want to do for hyperoptimization.")
-
-    FLAGS, _ = parser.parse_known_args()
-    print(FLAGS)
 
     main(FLAGS.model, FLAGS.feature_name, study, features_to_use, FLAGS.add_static_data,
          FLAGS.use_copies_for_static_data, output_path, FLAGS.n_trials)

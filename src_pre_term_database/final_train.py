@@ -13,11 +13,54 @@ import torch.optim as optim
 from sklearn.preprocessing import LabelEncoder
 from typing import List, Dict
 import constants as c
+import argparse
+import sys
+import os
 
 settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/settings'
 
 file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
+
+optional_model_dict = {
+    "lstm_sample_entropy_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(36, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=36, out_features=13, bias=True), nn.ReLU()),
+         'bidirectional': True},
+    "lstm_peak_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU(),
+                                         nn.Linear(in_features=29, out_features=18, bias=True),
+                                         nn.ReLU()),
+         'bidirectional': True},
+    "lstm_median_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(36, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU()),
+         'bidirectional': True},
+    "tcn_sample_entropy_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(21, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "tcn_peak_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "tcn_median_frequency_with_static_data":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())}
+}
+
+bidirectional_lstm_dict = {
+    "lstm_sample_entropy": {'bidirectional': True},
+    "lstm_peak_frequency": {'bidirectional': True},
+    "lstm_median_frequency": {'bidirectional': True},
+    "lstm_sample_entropy_with_static_data": {'bidirectional': True},
+    "lstm_peak_frequency_with_static_data": {'bidirectional': True},
+    "lstm_median_frequency_with_static_data": {'bidirectional': True}
+}
 
 
 def final_train_lstm_feature_sequence(X_train: pd.DataFrame, X_val: pd.DataFrame, df_signals: pd.DataFrame,
@@ -177,31 +220,90 @@ def main(model_name: str, features_to_use: List[str], best_params: Dict, add_sta
     if not add_static_data:
         num_static_features = 0
 
-    if model_name == 'tcn_feature_sequence':
+    if model_name == 'tcn':
         final_train_tcn_feature_sequence(X_train, X_val, df_signals, df_clinical_information, df_static_information,
                                          best_params, features_to_use, num_static_features=num_static_features,
                                          add_static_data=add_static_data, copies=copies)
 
-    elif model_name == 'lstm_feature_sequence':
+    elif model_name == 'lstm':
         final_train_lstm_feature_sequence(X_train, X_val, df_signals, df_clinical_information, df_static_information,
                                           best_params, features_to_use, num_static_features=num_static_features,
                                           add_static_data=add_static_data)
 
 
 if __name__ == "__main__":
-    # Model name is either 'tcn_feature_sequence' or 'lstm_feature_sequence'
-    model_name = 'tcn_feature_sequence'
-    # Name of the file where the results of the hyperparameter search is saved
-    optimal_params_file_name = 'tcn_data_trials_feature_median_frequency_combined_2022-05-08_14-19.csv'
-    out_path_model = '/Users/AFischer/Documents/PhD_onderzoek/term_preterm_database/output/model'
-    path_to_optimal_params = f'{out_path_model}/hyper_parameter_opt/{optimal_params_file_name}'
+    out_path_model = os.path.join(file_paths['output_path'], 'model')
 
-    hyper_opt_params = pd.read_csv(f'{path_to_optimal_params}')
-    # eval does not work for the case of LSTM with static data, so you need to hard copy the best params for these
-    # cases
-    best_params = eval(hyper_opt_params.sort_values(by=['loss']).reset_index()['params'][0])
+    # Command line arguments
+    parser = argparse.ArgumentParser(description='Train a final model (on the train+validation dataset) using the '
+                                                 'optimal hyperparameters obtained afer running evaluation.py. The '
+                                                 'optimal hyperparameters have to be put in the best_params.json file '
+                                                 'and the optional_model part has to be put in the optional_model_dict '
+                                                 'and bidirectional_lstm_dict, which are placed at the top of this '
+                                                 'final_train.py file. The final model will be saved in the '
+                                                 'out_path_model folder, which you have to specify in this main file. '
+                                                 'After running this file, you have to put the name of your final '
+                                                 'model in the final_models.json file and then you can run '
+                                                 'evaluation.py.')
+
+    parser.add_argument('--model', type=str, required=True,
+                        help="Select what model to use: 'lstm' or 'tcn'",
+                        choices=['tcn', 'lstm'])
+
+    parser.add_argument('--feature_name', type=str, required=True,
+                        help="Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or "
+                             "'median_frequency'",
+                        choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
+
+    # Make a dependency such that it is required to have either the --add_static_data or the --no_static_data flag
+    parser.add_argument('--add_static_data', action='store_true',
+                        required=('--model' in sys.argv and '--no_static_data' not in sys.argv),
+                        help="Add static clinical data to the model. Use either the --add_static_data or the"
+                             "--no_static_data flag")
+    parser.add_argument('--no_static_data', dest='add_static_data', action='store_false',
+                        required=('--model' in sys.argv and '--add_static_data' not in sys.argv),
+                        help="Use only the EHG data for modeling. Use either the --add_static_data or the"
+                             "--no_static_data flag")
+    parser.set_defaults(add_static_data=True)
+
+    # Make a dependency such that it is required to have either the --use_copies_for_static_data or the
+    # --no_copies_for_static_data flag if the --add_static_data flag is present
+    parser.add_argument('--use_copies_for_static_data', action='store_true',
+                        required=('--add_static_data' in sys.argv and '--no_copies_for_static_data' not in sys.argv),
+                        help="The static data is now treated as a time series, were each (static) value of each "
+                             "variable is copied along the time steps of the EHG time series data." 
+                             "Meaning, if there are 10 time steps in the seq data, then the static data is also "
+                             "copied for 10 time steps.")
+    parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
+                        required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv),
+                        help="The static data is now treated as single values that will be concatenated separately to "
+                             "the time series data after the time series data has been processed. Use either the "
+                             "--use_copies_for_static_data or the --no_copies_for_static_data flag.")
+    parser.set_defaults(use_copies_for_static_data=False)
+
+    FLAGS, unparsed = parser.parse_known_args()
+    print(FLAGS)
+
+    if FLAGS.add_static_data:
+        best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data'
+
+    elif not FLAGS.add_static_data:
+        best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}'
+
+    best_params: dict = read_settings(settings_path, 'best_params')
+    best_params = best_params[best_params_model_name]
+
+    final_model: dict = read_settings(settings_path, 'final_models')
+    final_model = final_model[best_params_model_name]
+
+    # If static data is added to the model, add the optional model part to the best_params dict
+    if FLAGS.add_static_data:
+        best_params.update(optional_model_dict[best_params_model_name])
+
+    # Add bidirectional as a boolean to the best_params dict for the LSTM models
+    if FLAGS.model == 'lstm':
+        best_params.update(bidirectional_lstm_dict[best_params_model_name])
 
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
-    add_static_data = True
-    copies = True
-    main(model_name, features_to_use, best_params, add_static_data, copies)
+
+    main(FLAGS.model, features_to_use, best_params, FLAGS.add_static_data, FLAGS.use_copies_for_static_data)
