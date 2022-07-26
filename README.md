@@ -4,7 +4,11 @@ Repo for preterm birth prediction using machine learning
 ## Download TPEHG database from PhysioNet
 Data can be found here: [PhysioNet](https://physionet.org/content/tpehgdb/1.0.1/)
 
-## Run the following command to install the required dependencies:
+The structure of the directory should be: ```{your_data_path}/tpehgdb/tpehg<ID>.{hea,dat}```.
+
+You should add your_data_path to the file_paths.json file, which can be found under ```references/settings/file_paths.json```
+
+## Run the following command to install the required dependencies: 
 
 ```bash
 pip3 install -r requirements.txt 
