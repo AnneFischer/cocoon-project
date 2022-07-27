@@ -6,7 +6,11 @@ Data can be found here: [PhysioNet](https://physionet.org/content/tpehgdb/1.0.1/
 
 The structure of the directory should be: ```{your_data_path}/tpehgdb/tpehg<ID>.{hea,dat}```.
 
-You should add your_data_path to the file_paths.json file, which can be found under ```references/settings/file_paths.json```
+You should add your_data_path to the file_paths.json file, which can be found under 
+
+```python
+references/settings/file_paths.json
+```
 
 ## Run the following command to install the required dependencies: 
 
