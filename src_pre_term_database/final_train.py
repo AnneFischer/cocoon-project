@@ -232,14 +232,11 @@ def main(model_name: str, features_to_use: List[str], best_params: Dict, add_sta
 
 
 if __name__ == "__main__":
-    out_path_model = os.path.join(file_paths['output_path'], 'model')
-
-    if not os.path.isdir(out_path_model):
-        os.mkdir(out_path_model)
+    out_path_model = os.path.abspath("trained_models")
 
     # Command line arguments
     parser = argparse.ArgumentParser(description='Train a final model (on the train+validation dataset) using the '
-                                                 'optimal hyperparameters obtained afer running evaluation.py. The '
+                                                 'optimal hyperparameters obtained afer running optimization.py. The '
                                                  'optimal hyperparameters have to be put in the best_params.json file '
                                                  'and the optional_model part has to be put in the optional_model_dict '
                                                  'and bidirectional_lstm_dict, which are placed at the top of this '
@@ -276,12 +273,15 @@ if __name__ == "__main__":
                         help="The static data is now treated as a time series, were each (static) value of each "
                              "variable is copied along the time steps of the EHG time series data." 
                              "Meaning, if there are 10 time steps in the seq data, then the static data is also "
-                             "copied for 10 time steps.")
+                             "copied for 10 time steps. This flag or the --no_copies_for_static_data flag are only "
+                             "required if the --add_static_data flag is used.")
     parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
                         required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv),
                         help="The static data is now treated as single values that will be concatenated separately to "
                              "the time series data after the time series data has been processed. Use either the "
-                             "--use_copies_for_static_data or the --no_copies_for_static_data flag.")
+                             "--use_copies_for_static_data or the --no_copies_for_static_data flag. This flag or the "
+                             "--use_copies_for_static_data flag are only required if the --add_static_data flag "
+                             "is used.")
     parser.set_defaults(use_copies_for_static_data=False)
 
     FLAGS, unparsed = parser.parse_known_args()

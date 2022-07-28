@@ -418,10 +418,15 @@ def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], 
 
 
 if __name__ == "__main__":
-    out_path_model = file_paths['output_path'] + "/" + "model"
+    out_path_model = os.path.abspath("trained_models")
 
     if not os.path.isdir(out_path_model):
         os.mkdir(out_path_model)
+
+    evaluation_results_path = os.path.join(file_paths['output_path'], 'evaluation_results')
+
+    if not os.path.isdir(evaluation_results_path):
+        os.mkdir(evaluation_results_path)
 
     # Command line arguments
     parser = argparse.ArgumentParser(description='Evaluate the final model on test set using the final trained model'
@@ -446,11 +451,11 @@ if __name__ == "__main__":
     # Make a dependency such that it is required to have either the --add_static_data or the --no_static_data flag
     parser.add_argument('--add_static_data', action='store_true',
                         required=('--model' in sys.argv and '--no_static_data' not in sys.argv),
-                        help="Add static clinical data to the model. Use either the --add_static_data or the"
+                        help="Add static clinical data to the model. Use either the --add_static_data or the "
                              "--no_static_data flag")
     parser.add_argument('--no_static_data', dest='add_static_data', action='store_false',
                         required=('--model' in sys.argv and '--add_static_data' not in sys.argv),
-                        help="Use only the EHG data for modeling. Use either the --add_static_data or the"
+                        help="Use only the EHG data for modeling. Use either the --add_static_data or the "
                              "--no_static_data flag")
     parser.set_defaults(add_static_data=True)
 
@@ -461,12 +466,15 @@ if __name__ == "__main__":
                         help="The static data is now treated as a time series, were each (static) value of each "
                              "variable is copied along the time steps of the EHG time series data." 
                              "Meaning, if there are 10 time steps in the seq data, then the static data is also "
-                             "copied for 10 time steps.")
+                             "copied for 10 time steps. This flag or the --no_copies_for_static_data flag are only "
+                             "required if the --add_static_data flag is used.")
     parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
                         required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv),
                         help="The static data is now treated as single values that will be concatenated separately to "
                              "the time series data after the time series data has been processed. Use either the "
-                             "--use_copies_for_static_data or the --no_copies_for_static_data flag.")
+                             "--use_copies_for_static_data or the --no_copies_for_static_data flag. This flag or the "
+                             "--use_copies_for_static_data flag are only required if the --add_static_data flag "
+                             "is used.")
     parser.set_defaults(use_copies_for_static_data=False)
 
     FLAGS, unparsed = parser.parse_known_args()
@@ -500,8 +508,8 @@ if __name__ == "__main__":
     results_dict.update({'model_file_name': final_model})
     print(results_dict)
 
-    with open(f'{out_path_model}/{final_model}_results.csv', 'w') as f:
+    with open(f'{evaluation_results_path}/{best_params_model_name}_results.csv', 'w') as f:
         for key in results_dict.keys():
             f.write("%s, %s\n" % (key, results_dict[key]))
 
-    print(f'Results are saved at: {out_path_model}/{final_model}_results.csv')
+    print(f'Results are saved at: {evaluation_results_path}/{best_params_model_name}_results.csv')
