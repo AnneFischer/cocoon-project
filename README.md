@@ -27,3 +27,13 @@ pip3 install -e .
 ```
 ### Add the correct paths 
 In the ```file_paths.json``` file you should specify your settings_path and output_path. All results will be saved in your output_path.
+
+## Step 1: Preprocess data
+
+We preprocess the EHG data from the TPEHG DB by using a fourth order Butterworth filter with a bandwith of 0.34 - 1 Hz. To obtain the filtered data run:
+
+```python
+python ./src_pre_term_database/preprocess_data.py
+```
+
+Running this file may take a couple of minutes and the resulting file will be saved under the name `df_signals_filt.csv` in the data_path folder you specified in the `file_paths.json` file. The first and last 3600 seconds of each recording will be removed because of transient effects of the filtering.
