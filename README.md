@@ -74,4 +74,58 @@ Example of how to evaluate the final model for TCN with peak frequency as method
 python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data
 ```
 
+## Step 3 and 4 (optional): Re-run hyperoptimization and train final model
 
+You can re-run hyperoptimization for all models. Hyperoptimization is based on Bayesian Optimization using the Optuna package. Hyperparameter spaces are defined in the following classes which are declared in the `optimization.py` file: 
+
+- `ObjectiveLSTMFeatureCombinedModel`
+- `ObjectiveTcnFeatureCombinedModelWithCopies` 
+- `ObjectiveTcnFeatureCombinedModel`
+- `ObjectiveTcnFeatureModel`
+- `ObjectiveLSTMFeatureModel` 
+
+The output path where the results will be saved needs to be defined in the main function of `optimization.py`.
+
+Usage of re-running hyperoptimization:
+
+```
+  --model {tcn,lstm}    Select what model to use: 'lstm' or 'tcn'
+  
+  --feature_name {sample_entropy,peak_frequency,median_frequency}
+                        Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or 'median_frequency'
+                        
+  --add_static_data     Add static clinical data to the model. Use either the --add_static_data or the--no_static_data flag
+  
+  --no_static_data      Use only the EHG data for modeling. Use either the --add_static_data or the--no_static_data flag
+  
+  --use_copies_for_static_data
+                        The static data is now treated as a time series, were each (static) value of each variable is copied
+                        along the time steps of the EHG time series data.Meaning, if there are 10 time steps in the seq data,
+                        then the static data is also copied for 10 time steps. This flag or the --no_copies_for_static_data
+                        flag are only required if the --add_static_data flag is used.
+                        
+  --no_copies_for_static_data
+                        The static data is now treated as single values that will be concatenated separately to the time series
+                        data after the time series data has been processed. Use either the --use_copies_for_static_data or the
+                        --no_copies_for_static_data flag. This flag or the --use_copies_for_static_data flag are only required
+                        if the --add_static_data flag is used.
+                        
+  --new_study           Use this flag if you want to create a new study to do hyperparameter optimization. Use either the
+                        --new_study or --existing_study flag.
+                        
+  --existing_study      Use this flag if you want to continue with a previously run study. You should also specify --study_name
+                        'name_of_your_study_file' when using the --existing_study flag.Use either the --new_study or
+                        --existing_study flag.
+                        
+  --study_name STUDY_NAME
+                        Provide the name of the file that contains the previously run optimization. Must be a .pkl file. Usage:
+                        --study_name 'name_of_your_study_file.pkl'
+                        
+  --n_trials N_TRIALS   Number of runs you want to do for hyperoptimization. Default is 50 runs.
+```
+
+Example to do hyperoptimization for the TCN model, with peak frequency as method of data reduction, no static data and 100 runs over the hyperparameter space:
+
+```python
+python ./src_pre_term_database/optimization.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data --new_study --n_trials 100
+```
