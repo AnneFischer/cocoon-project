@@ -132,7 +132,7 @@ python ./src_pre_term_database/optimization.py --model 'tcn' --feature_name 'pea
 
 ## Step 4 (optional): Train final model using the optimal hyperparameters obtained in step 3
 
-You should hard-copy the optimal hyperparameters you-ve obtained in step 3 in the `best_params.json` file and the optional_model part (when EHG data and static data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `final_train.py` file. 
+You should hard-copy the optimal hyperparameters you've obtained in step 3 in the `best_params.json` file and the optional_model part (when EHG data and static data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `final_train.py` file. 
 
 The final model will be saved in the `trained_models` folder. After running `final_train.py` you have to put the name of your final model in the `final_models.json` file and then you can run `evaluation.py` (see step 1 for explanation on usage) to evaluate your results.
 
