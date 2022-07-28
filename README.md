@@ -40,7 +40,7 @@ Running this file may take a couple of minutes and the resulting file will be sa
 
 ## Step 2: Evaluation
 
-The final trained models are provided in the `trained_models` folder. The final models are evaluated on the test set and performance is given in terms of AUC and AP. The optimal hyperparameters are provided in the `best_params.json` file and the optional_model part (when EHG data and clinical data are combined) has to be put in the optional_model_dict and bidirectional_lstm_dict, which are placed at the top of the `evaluation.py` file. The name of your final model has to be specified in the `final_models.json` file. 
+The final trained models are provided in the `trained_models` folder. The final models are evaluated on the test set and performance is given in terms of AUC and AP. The optimal hyperparameters are provided in the `best_params.json` file and the optional_model part (when EHG data and clinical data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `evaluation.py` file. The name of your final model has to be specified in the `final_models.json` file. 
 
 Usage:
 
