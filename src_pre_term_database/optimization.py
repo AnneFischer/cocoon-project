@@ -25,7 +25,7 @@ from typing import List
 import argparse
 import os
 
-settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/settings'
+settings_path = os.path.abspath("references/settings")
 
 file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
@@ -4316,6 +4316,9 @@ if __name__ == "__main__":
     # EHG data to use for modelling
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
     output_path = os.path.join(file_paths['output_path'], 'model/hyper_parameter_opt/')
+
+    if not os.path.isdir(output_path):
+        os.mkdir(output_path)
 
     # Command line arguments
     parser = argparse.ArgumentParser(description='Hyperoptimization based on Bayesian Optimization using the Optuna '

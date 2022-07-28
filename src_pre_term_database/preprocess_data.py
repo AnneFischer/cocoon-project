@@ -2,8 +2,9 @@ from src_pre_term_database.load_dataset import build_signal_dataframe
 from src_pre_term_database.data_processing_and_feature_engineering import create_filtered_channels, \
     remove_first_n_samples_of_signals, remove_last_n_samples_of_signals
 from src_pre_term_database.utils import read_settings
+import os
 
-settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/settings'
+settings_path = os.path.abspath("references/settings")
 
 file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
