@@ -1,5 +1,7 @@
 # cocoon-project
-Repo for preterm birth prediction using machine learning
+Repo for preterm birth prediction using machine learning.
+
+Download this repo by running: ```git clone https://github.com/AnneFischer/cocoon-project```.
 
 ## Download TPEHG database from PhysioNet
 Data can be found here: [PhysioNet](https://physionet.org/content/tpehgdb/1.0.1/)
