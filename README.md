@@ -50,19 +50,21 @@ Usage:
   --feature_name {sample_entropy,peak_frequency,median_frequency}
                         Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or 'median_frequency'
                         
-  --add_static_data     Add static clinical data to the model. Use either the --add_static_data or the--no_static_data flag
+  --add_static_data     Add static clinical data to the model. Use either the --add_static_data or the --no_static_data flag
   
-  --no_static_data      Use only the EHG data for modeling. Use either the --add_static_data or the--no_static_data flag
+  --no_static_data      Use only the EHG data for modeling. Use either the --add_static_data or the --no_static_data flag
   
   --use_copies_for_static_data
                         The static data is now treated as a time series, were each (static) value of each variable is copied
                         along the time steps of the EHG time series data.Meaning, if there are 10 time steps in the seq data,
-                        then the static data is also copied for 10 time steps.
+                        then the static data is also copied for 10 time steps. This flag or the --no_copies_for_static_data
+                        flag are only required if the --add_static_data flag is used.
                         
   --no_copies_for_static_data
                         The static data is now treated as single values that will be concatenated separately to the time series
                         data after the time series data has been processed. Use either the --use_copies_for_static_data or the
-                        --no_copies_for_static_data flag.
+                        --no_copies_for_static_data flag. This flag or the --use_copies_for_static_data flag are only required
+                        if the --add_static_data flag is used.
                         
 ```
 
