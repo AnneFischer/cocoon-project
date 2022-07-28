@@ -15,11 +15,11 @@ references/settings/file_paths.json
 ## Run the following command to install the required dependencies: 
 
 ```bash
-pip3 install -r requirements.txt 
+pip install -e .
 ```
 
 or
 
 ```bash
-pip install -r requirements.txt 
+pip3 install -e .
 ```
