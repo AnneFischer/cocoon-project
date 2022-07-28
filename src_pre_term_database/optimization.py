@@ -4356,12 +4356,15 @@ if __name__ == "__main__":
                         help="The static data is now treated as a time series, were each (static) value of each "
                              "variable is copied along the time steps of the EHG time series data." 
                              "Meaning, if there are 10 time steps in the seq data, then the static data is also "
-                             "copied for 10 time steps.")
+                             "copied for 10 time steps. This flag or the --no_copies_for_static_data flag are only "
+                             "required if the --add_static_data flag is used.")
     parser.add_argument('--no_copies_for_static_data', dest='use_copies_for_static_data', action='store_false',
                         required=('--add_static_data' in sys.argv and '--use_copies_for_static_data' not in sys.argv),
                         help="The static data is now treated as single values that will be concatenated separately to "
                              "the time series data after the time series data has been processed. Use either the "
-                             "--use_copies_for_static_data or the --no_copies_for_static_data flag.")
+                             "--use_copies_for_static_data or the --no_copies_for_static_data flag. This flag or the "
+                             "--use_copies_for_static_data flag are only required if the --add_static_data flag "
+                             "is used.")
     parser.set_defaults(use_copies_for_static_data=False)
 
     parser.add_argument('--new_study', action='store_true',
