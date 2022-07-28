@@ -19,8 +19,9 @@ import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 import math
 import argparse
+import os
 
-settings_path = '/Users/AFischer/PycharmProjects/cocoon-project/references/settings'
+settings_path = os.path.abspath("references/settings")
 
 file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
@@ -418,6 +419,9 @@ def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], 
 
 if __name__ == "__main__":
     out_path_model = file_paths['output_path'] + "/" + "model"
+
+    if not os.path.isdir(out_path_model):
+        os.mkdir(out_path_model)
 
     # Command line arguments
     parser = argparse.ArgumentParser(description='Evaluate the final model on test set using the final trained model'
