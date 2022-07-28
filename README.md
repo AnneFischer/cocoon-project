@@ -78,11 +78,11 @@ python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_
 
 You can re-run hyperoptimization for all models. Hyperoptimization is based on Bayesian Optimization using the Optuna package. Hyperparameter spaces are defined in the following classes which are declared in the `optimization.py` file: 
 
-- `ObjectiveLSTMFeatureCombinedModel`
-- `ObjectiveTcnFeatureCombinedModelWithCopies` 
-- `ObjectiveTcnFeatureCombinedModel`
-- `ObjectiveTcnFeatureModel`
-- `ObjectiveLSTMFeatureModel` 
+- `ObjectiveLSTMFeatureCombinedModel` (EHG data + static data)
+- `ObjectiveTcnFeatureCombinedModelWithCopies` (EHG data + static data treated as time series)
+- `ObjectiveTcnFeatureCombinedModel` (EHG data + static data)
+- `ObjectiveTcnFeatureModel` (EHG data)
+- `ObjectiveLSTMFeatureModel` (EHG data)
 
 The output path where the results will be saved needs to be defined in the main function of `optimization.py`.
 
