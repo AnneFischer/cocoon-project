@@ -25,3 +25,5 @@ or
 ```bash
 pip3 install -e .
 ```
+### Add the correct paths 
+In the ```file_paths.json``` file you should specify your settings_path and output_path. All results will be saved in your output_path.
