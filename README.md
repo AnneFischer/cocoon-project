@@ -8,7 +8,7 @@ Data can be found here: [PhysioNet](https://physionet.org/content/tpehgdb/1.0.1/
 
 The structure of the directory should be: ```{your_data_path}/tpehgdb/tpehg<ID>.{hea,dat}```.
 
-You should add your_data_path as `data_path` variable to the `file_paths.json` file, which can be found under 
+You should add your_data_path as `data_path` variable to the `file_paths.json` file, which can be found under: 
 
 ```python
 references/settings/file_paths.json
