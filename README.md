@@ -74,7 +74,7 @@ Example of how to evaluate the final model for TCN with peak frequency as method
 python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data
 ```
 
-## Step 3 and 4 (optional): Re-run hyperoptimization and train final model
+## Step 3 (optional): Re-run hyperoptimization
 
 You can re-run hyperoptimization for all models. Hyperoptimization is based on Bayesian Optimization using the Optuna package. Hyperparameter spaces are defined in the following classes which are declared in the `optimization.py` file: 
 
@@ -129,3 +129,5 @@ Example to do hyperoptimization for the TCN model, with peak frequency as method
 ```python
 python ./src_pre_term_database/optimization.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data --new_study --n_trials 100
 ```
+
+## Step 4 (optional): Train final model using the optimal hyperparameters obtained in step 3
