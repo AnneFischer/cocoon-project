@@ -1992,23 +1992,27 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
 
         print(f'Precision score with mean pred: {precision_score(self.test_labels, self.final_test_predictions)}')
         print(f'Recall score with mean pred: {recall_score(self.test_labels, self.final_test_predictions)}')
+        print(f'Specificity score with mean pred: {recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_test_predictions))}')
         print(f'F1 score with mean pred: {f1_score(self.test_labels, self.final_test_predictions)}')
         print(f'AUC score with mean prob: {roc_auc_score(self.test_labels, self.final_test_prob)}')
         print(f'AP score with mean prob: {average_precision_score(self.test_labels, self.final_test_prob)}')
 
         print(f'Precision score with max pred: {precision_score(self.test_labels, self.final_max_test_predictions)}')
         print(f'Recall score with max pred: {recall_score(self.test_labels, self.final_max_test_predictions)}')
+        print(f'Specificity score with max pred: {recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_max_test_predictions))}')
         print(f'F1 score with max pred: {f1_score(self.test_labels, self.final_max_test_predictions)}')
         print(f'AUC score with max prob: {roc_auc_score(self.test_labels, self.final_max_test_probabilities)}')
         print(f'AP score with max prob: {average_precision_score(self.test_labels, self.final_max_test_probabilities)}')
 
         results_dict = {'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
                         'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
+                        'specificity_mean_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_test_predictions)),
                         'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
                         'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
                         'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
                         'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
                         'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
+                        'specificity_max_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_max_test_predictions)),
                         'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
                         'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
                         'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}
@@ -3620,23 +3624,27 @@ class OptimizationTCNFeatureSequence:
 
         print(f'Precision score with mean pred: {precision_score(self.test_labels, self.final_test_predictions)}')
         print(f'Recall score with mean pred: {recall_score(self.test_labels, self.final_test_predictions)}')
+        print(f'Specificity score with mean pred: {recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_test_predictions))}')
         print(f'F1 score with mean pred: {f1_score(self.test_labels, self.final_test_predictions)}')
         print(f'AUC score with mean prob: {roc_auc_score(self.test_labels, self.final_test_prob)}')
         print(f'AP score with mean prob: {average_precision_score(self.test_labels, self.final_test_prob)}')
 
         print(f'Precision score with max pred: {precision_score(self.test_labels, self.final_max_test_predictions)}')
         print(f'Recall score with max pred: {recall_score(self.test_labels, self.final_max_test_predictions)}')
+        print(f'Specificity score with max pred: {recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_max_test_predictions))}')
         print(f'F1 score with max pred: {f1_score(self.test_labels, self.final_max_test_predictions)}')
         print(f'AUC score with max prob: {roc_auc_score(self.test_labels, self.final_max_test_probabilities)}')
         print(f'AP score with max prob: {average_precision_score(self.test_labels, self.final_max_test_probabilities)}')
 
         results_dict = {'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
                         'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
+                        'specificity_mean_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_test_predictions)),
                         'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
                         'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
                         'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
                         'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
                         'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
+                        'specificity_max_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_max_test_predictions)),
                         'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
                         'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
                         'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}

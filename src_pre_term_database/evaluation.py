@@ -160,6 +160,8 @@ def evaluate_tcn_feature_sequence(df_signals: pd.DataFrame, df_clinical_informat
 
     # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
     # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
+    # These are weights based on the train data
+    # TO DO: make generic function such that when you have a new train set, you automatically calculate the new weights
     pos_weight = torch.Tensor([((89 + 68) / 23)])
 
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
