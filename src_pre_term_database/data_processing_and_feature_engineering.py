@@ -9,13 +9,13 @@ import torch
 from torch.utils.data import TensorDataset, Dataset, DataLoader, ConcatDataset
 import antropy as ant
 import sklearn
-import warnings
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import ColumnTransformer, make_column_selector
 from utils import remove_correlated_columns, replace_na_with_zero, replace_inf_with_zero
 import random
+from src_pre_term_database.load_dataset import build_demographics_dataframe
 
 
 def butter_bandpass_filter(data: np.array, low_cut: float, high_cut: float,
@@ -411,7 +411,7 @@ def feature_label_split(df: pd.DataFrame, target_col: str) -> Tuple[pd.DataFrame
     -------
     [df_features, df_label] : Tuple[pd.DataFrame, pd.DataFrame]
     """
-    df_label = df[[target_col]]
+    df_label = df.loc[:, [target_col]]
     df_features = df.drop(columns=[target_col])
 
     return df_features, df_label
@@ -456,14 +456,13 @@ def train_val_test_split(df: pd.DataFrame, target_col: str,
     return x_train, x_val, x_test, y_train, y_val, y_test
 
 
-def preprocess_static_data(df_static_information: pd.DataFrame, x_data_to_be_fitted: pd.DataFrame,
+def preprocess_static_data(x_data_to_be_fitted: pd.DataFrame,
                            x_data_to_be_transformed: pd.DataFrame,
-                           threshold_correlation: float = 0.85) -> Tuple[np.array, np.array, List[str],
-                                                                         List[int], List[int]]:
+                           threshold_correlation: float = 0.85) -> [np.array, np.array, List[str], List[int]]:
     """Preprocess the static data.
 
     - Impute the missing values (with either the median or mean)
-    - One-hot-encode the categorical columns
+    - Standard scale data
     - Remove of a column pair if the correlation is > threshold_correlation
 
     Parameters
@@ -488,28 +487,25 @@ def preprocess_static_data(df_static_information: pd.DataFrame, x_data_to_be_fit
         the x fit array and x transform array.
     """
     # This df contains the static data
-    x_fit_static = df_static_information[df_static_information[c.REC_ID_NAME].isin(x_data_to_be_fitted[c.REC_ID_NAME].unique())] \
-        .reset_index(drop=True).copy()
-    x_transform_static = df_static_information[df_static_information[c.REC_ID_NAME].isin(x_data_to_be_transformed[c.REC_ID_NAME].unique())] \
-        .reset_index(drop=True).copy()
+    # x_fit_static = df_static_information[df_static_information[c.REC_ID_NAME].isin(x_data_to_be_fitted[c.REC_ID_NAME].unique())] \
+    #     .reset_index(drop=True).copy()
+    # x_transform_static = df_static_information[df_static_information[c.REC_ID_NAME].isin(x_data_to_be_transformed[c.REC_ID_NAME].unique())] \
+    #     .reset_index(drop=True).copy()
 
     # Keep the list of rec ids present as we want to know which data belongs to a certain id
-    rec_id_list_fit = x_fit_static[c.REC_ID_NAME].unique()
-    rec_id_list_transform = x_transform_static[c.REC_ID_NAME].unique()
+    #rec_id_list_fit = x_data_to_be_fitted[c.REC_ID_NAME].unique()
+    rec_id_list_transform = x_data_to_be_transformed[c.REC_ID_NAME].unique()
 
     # We need to this step because the X dataframe now contain the label column ('premature')
-    x_fit_static, y_fit_static = feature_label_split(x_fit_static, 'premature')
-    x_transform_static, y_transform_static = feature_label_split(x_transform_static, 'premature')
+    x_fit_static, y_fit_static = feature_label_split(x_data_to_be_fitted, 'premature')
+    x_transform_static, y_transform_static = feature_label_split(x_data_to_be_transformed, 'premature')
 
     # define column groups with same processing
-    cat_vars = ['hypertension', 'diabetes', 'placental_position', 'bleeding_first_trimester',
-                'bleeding_second_trimester', 'funneling', 'smoker']
     num_median_vars = ['parity', 'abortions']
     num_mean_vars = ['age', 'weight']
     num_remaining_vars = ['gestation_at_rec_time']
 
     # set up pipelines for each column group
-    categorical_pipe = Pipeline([('one_hot_encoder', OneHotEncoder(handle_unknown='error'))])
     numeric_mean_pipe = Pipeline([('simple_imp_mean', SimpleImputer(strategy='mean')),
                                   ('standard_scaler', StandardScaler())])
     numeric_median_pipe = Pipeline([('simple_imp_median', SimpleImputer(strategy='median')),
@@ -523,14 +519,16 @@ def preprocess_static_data(df_static_information: pd.DataFrame, x_data_to_be_fit
         transformers=[
             ('num_median_vars', numeric_median_pipe, num_median_vars),
             ('num_mean_vars', numeric_mean_pipe, num_mean_vars),
-            ('num_remaining_vars', numeric_remaining_pipe, num_remaining_vars),
-            ('cats', categorical_pipe, cat_vars)
-        ],
+            ('num_remaining_vars', numeric_remaining_pipe, num_remaining_vars)],
         remainder='drop'
     )
+
+    assert all(x == y for x, y in zip(x_fit_static.columns, x_transform_static)), "Columns in x_fit_static and " \
+                                                                                  "x_transform_static must be in the" \
+                                                                                  "exact same order!"
+
     lb = LabelEncoder()
     # Fit the transformer on the train data (x_fit_static) and then only transform on val and test data
-
     x_fitted_arr_static = fit_and_transform_data(x_fit_static, x_fit_static, static_transformer)
     x_transformed_arr_static = fit_and_transform_data(x_fit_static, x_transform_static, static_transformer)
     y_transformed_arr_static = fit_and_transform_data(y_fit_static.values.ravel(),
@@ -539,20 +537,69 @@ def preprocess_static_data(df_static_information: pd.DataFrame, x_data_to_be_fit
     # List of new feature names after transforming
     feature_list = get_feature_names(static_transformer)
 
+    one_hot_enc_columns = [col for col in x_fit_static.columns if 'one_hot_encoder' in col]
+
+    x_fitted_arr_static = pd.concat([pd.DataFrame(x_fitted_arr_static, columns=feature_list),
+                                     x_fit_static[one_hot_enc_columns]], axis=1).reset_index(drop=True)
+
+    x_transformed_arr_static = pd.concat([pd.DataFrame(x_transformed_arr_static, columns=feature_list),
+                                          x_transform_static[one_hot_enc_columns]], axis=1).reset_index(drop=True)
+
+    total_cols = feature_list + one_hot_enc_columns
+
     # We remove one if the correlated column pairs that have a correlation higher than threshold_correlation
     # from x_fitted_arr_static
-    selected_columns = remove_correlated_columns(pd.DataFrame(x_fitted_arr_static, columns=feature_list),
-                                                 cols_to_check=feature_list, thresh=threshold_correlation)
+    selected_columns = remove_correlated_columns(x_fitted_arr_static,
+                                                 cols_to_check=x_fitted_arr_static.columns,
+                                                 thresh=threshold_correlation)
 
     # Create a boolean series of which columns to include and which to exclude from x_fitted_arr_static
     boolean_series_selected_feat = pd.DataFrame(x_fitted_arr_static,
-                                                columns=feature_list).columns.isin(selected_columns)
+                                                columns=total_cols).columns.isin(selected_columns)
 
     # Only with the selected features from x_fitted_arr_static
-    x_transformed_arr_static = x_transformed_arr_static[np.ix_(list(range(0, len(x_transformed_arr_static))),
-                                                               boolean_series_selected_feat)]
+    x_transformed_arr_static = x_transformed_arr_static.iloc[:, boolean_series_selected_feat]
 
-    return x_transformed_arr_static, y_transformed_arr_static, selected_columns, rec_id_list_fit, rec_id_list_transform
+    x_transformed_arr_static = x_transformed_arr_static.to_numpy()
+
+    return x_transformed_arr_static, y_transformed_arr_static, selected_columns, rec_id_list_transform
+
+
+def preprocess_signal_data(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train, y_test, features_to_use: List[str]):
+    # Drop the rec_id column from the X dataframe
+    column_drop_pipeline = Pipeline([("columnDropper", ColumnDropperTransformer([c.REC_ID_NAME]))])
+
+    # apply the column drop pipeline to dataframe
+    x_arr_test = fit_and_transform_data(x_train, x_test, column_drop_pipeline)
+    x_arr_train = fit_and_transform_data(x_train, x_train, column_drop_pipeline)
+
+    # ColumnTransformer needs a pd.DataFrame if columns are provided so we re-convert to a pd.DataFrame
+    x_train = pd.DataFrame(data=x_arr_train, index=np.arange(len(x_arr_train)),
+                           columns=[col for col in features_to_use if col != c.REC_ID_NAME])
+
+    x_test = pd.DataFrame(data=x_arr_test,
+                          index=np.arange(len(x_arr_test)),
+                          columns=[col for col in features_to_use if col != c.REC_ID_NAME])
+
+    # set up pipeline for the signal data
+    numeric_standard_pipe = Pipeline([('standard_scaler', StandardScaler())])
+
+    # Set up columnTransformer
+    # If using 'passthrough' for the remainder parameter, the columns when performing fit and transform must be in
+    # the exact same order. We use the static_transformer only for the signals data (present in columns_to_use)
+    static_transformer = ColumnTransformer(transformers=[('num_signal_vars', numeric_standard_pipe, features_to_use)],
+                                           remainder='passthrough')
+
+    x_arr_test = fit_and_transform_data(x_train, x_test, static_transformer)
+    x_arr_train = fit_and_transform_data(x_train, x_train, static_transformer)
+
+    y_arr_test = fit_and_transform_data(y_train.values.ravel(),
+                                        y_test.values.ravel(), LabelEncoder())
+
+    y_arr_train = fit_and_transform_data(y_train.values.ravel(),
+                                         y_train.values.ravel(), LabelEncoder())
+
+    return x_arr_train, x_arr_test, y_arr_train, y_arr_test
 
 
 def sort_in_descending_order_of_occurrence_count(df: pd.DataFrame, column: str) -> pd.DataFrame:
@@ -1259,11 +1306,199 @@ def custom_calculate_feature_over_fixed_time_window(trial, params: Dict, df_sign
     return custom_loader_feature
 
 
+def basic_preprocessing_signal_data(df_signals, df_clinical_information, reduced_seq_length, features_to_use, feature_name, fs):
+    # This dataframe contains calculated features (e.g., peak frequency) over the original signal data
+    df_features = calculate_feature_over_fixed_time_window(df_signals,
+                                                           fixed_seq_length=reduced_seq_length,
+                                                           column_list=features_to_use,
+                                                           feature_name=feature_name,
+                                                           fs=fs)
+
+    if feature_name == 'sample_entropy':
+        df_features = replace_inf_with_zero(df_features)
+        df_features = replace_na_with_zero(df_features)
+
+    # Re-add the label 'premature' to df_feature, which will now have as many time steps as the calculated features
+    df_features = df_features.merge(df_clinical_information[[c.REC_ID_NAME, 'premature']], how='left', on=c.REC_ID_NAME)
+
+    # Assign 0 to non-premature cases and assign 1 to premature cases
+    lb = LabelEncoder()
+    df_features, df_label = feature_label_split(df_features, 'premature')
+    df_label['premature'] = lb.fit_transform(df_label['premature'])
+
+    return df_features, df_label
+
+
+
+def basic_preprocessing_static_data(data_path: str, settings_path: str, df_clinical_information: pd.DataFrame):
+    lb = LabelEncoder()
+    df_demographics = build_demographics_dataframe(data_path, settings_path)
+    df_static_information = df_demographics.merge(df_clinical_information, how='left', on=c.REC_ID_NAME)
+    df_static_information['premature'] = lb.fit_transform(df_static_information['premature'])
+
+    # define column groups with same processing
+    cat_vars = ['hypertension', 'diabetes', 'placental_position', 'bleeding_first_trimester',
+                'bleeding_second_trimester', 'funneling', 'smoker']
+
+    # set up pipelines for each column group
+    categorical_pipe = Pipeline([('one_hot_encoder', OneHotEncoder(handle_unknown='error'))])
+
+    # Set up columnTransformer
+    # If using 'passthrough' for the remainder parameter, the columns when performing fit and transform must be in
+    # the exact same order
+    static_transformer = ColumnTransformer(transformers=[('cats', categorical_pipe, cat_vars)],
+                                           remainder='passthrough')
+
+    df_static_information = fit_and_transform_data(df_static_information, df_static_information, static_transformer)
+
+    # List of new feature names after transforming
+    feature_list = get_feature_names(static_transformer)
+
+    # Manual remapping of column names back to their original name after using static_transformer for columns that
+    # have not been transformed.
+    rename_dict = {'x0': 'rec_id', 'x1': 'age', 'x2': 'parity', 'x3': 'abortions', 'x4': 'weight', 'x12': 'gestation',
+                   'x13': 'gestation_at_rec_time', 'x14': 'group', 'x15': 'premature', 'x16': 'early'}
+
+    df_static_information = pd.DataFrame(df_static_information, columns=feature_list)
+    df_static_information = pd.DataFrame(df_static_information).rename(columns=rename_dict)
+
+    # Cast one hot encoder columns to float64
+    one_hot_enc_columns = [col for col in df_static_information.columns if 'one_hot_encoder' in col]
+    df_static_information[one_hot_enc_columns] = df_static_information[one_hot_enc_columns].apply(pd.to_numeric)
+
+    return df_static_information
+
+
+def add_static_data_to_signal_data(X_train_static: pd.DataFrame, X_test_static: pd.DataFrame,
+                                   X_train_signal: pd.DataFrame, X_test_signal: pd.DataFrame,
+                                   X_train_signal_processed: np.array, X_test_signal_processed: np.array,
+                                   rec_ids_x_train_signal: List[int], rec_ids_x_test_signal: List[int],
+                                   features_to_use: List[str], threshold_correlation: float) -> Tuple[pd.DataFrame,
+                                                                                                      pd.DataFrame,
+                                                                                                      np.array,
+                                                                                                      np.array,
+                                                                                                      List[str]]:
+
+    X_train_combined = X_train_signal.merge(X_train_static, on=c.REC_ID_NAME).reset_index(drop=True)
+    X_test_combined = X_test_signal.merge(X_test_static, on=c.REC_ID_NAME).reset_index(drop=True)
+
+    assert set(X_train_signal[c.REC_ID_NAME]) == set(X_train_static[c.REC_ID_NAME]), \
+        "Rec ids in inner fold in train signals and train static data are not the same!"
+
+    assert set(X_test_signal[c.REC_ID_NAME]) == set(X_test_static[c.REC_ID_NAME]), \
+        "Rec ids in inner fold test signals and test static data are not the same!"
+
+    # Count the number of static features within this specific training fold
+    # One of a pair of highly correlated features (>85%) will be removed and this can be
+    # different within each fold
+
+    x_arr_static_train, y_arr_static_train, selected_columns_train_static, rec_id_list_static_train = preprocess_static_data(
+        X_train_static,
+        X_train_static,
+        threshold_correlation=threshold_correlation)
+
+    num_static_features = len(selected_columns_train_static)
+    print(f'Num static features: {num_static_features}')
+
+    x_arr_static_test, y_arr_static_test, selected_columns_test_static, rec_id_list_static_test = preprocess_static_data(
+        X_train_static,
+        X_test_static,
+        threshold_correlation=threshold_correlation)
+
+    assert set(selected_columns_train_static) == set(selected_columns_test_static), "Columns used for" \
+                                                                                    "preprocessing static data" \
+                                                                                    "is not equal for train" \
+                                                                                    "and test!"
+    # Safety check if the data consequently processed for the correct order of rec ids
+    assert set(rec_id_list_static_test) == set(X_test_static[c.REC_ID_NAME].unique())
+    assert set(rec_id_list_static_train) == set(X_train_static[c.REC_ID_NAME].unique())
+
+    # Re-add column 'rec_id'
+    df_static_train = pd.concat([pd.DataFrame(rec_id_list_static_train, columns=[c.REC_ID_NAME]),
+                                 pd.DataFrame(x_arr_static_train, columns=selected_columns_train_static)],
+                                axis=1)
+    df_static_test = pd.concat([pd.DataFrame(rec_id_list_static_test, columns=[c.REC_ID_NAME]),
+                                pd.DataFrame(x_arr_static_test, columns=selected_columns_test_static)], axis=1)
+
+    X_train_signal_processed = pd.concat([pd.DataFrame(rec_ids_x_train_signal, columns=[c.REC_ID_NAME]),
+                                          pd.DataFrame(X_train_signal_processed,
+                                                       columns=features_to_use)], axis=1)
+
+    X_test_signal_processed = pd.concat([pd.DataFrame(rec_ids_x_test_signal, columns=[c.REC_ID_NAME]),
+                                         pd.DataFrame(X_test_signal_processed,
+                                                      columns=features_to_use)], axis=1)
+
+    X_train_combined_processed = X_train_signal_processed.merge(df_static_train,
+                                                                on=c.REC_ID_NAME).reset_index(drop=True)
+    X_test_combined_processed = X_test_signal_processed.merge(df_static_test,
+                                                              on=c.REC_ID_NAME).reset_index(drop=True)
+
+    # Drop the rec_id column from the X dataframe
+    column_drop_pipeline = Pipeline([("columnDropper", ColumnDropperTransformer([c.REC_ID_NAME]))])
+    X_train_combined_processed = fit_and_transform_data(X_train_combined_processed, X_train_combined_processed,
+                                                        column_drop_pipeline)
+    X_test_combined_processed = fit_and_transform_data(X_train_combined_processed, X_test_combined_processed,
+                                                       column_drop_pipeline)
+
+    return X_train_combined, X_test_combined, X_train_combined_processed, X_test_combined_processed, \
+           selected_columns_train_static
+
+
+def generate_dataloader(x_feature, x_preprocessed, y_preprocessed, features_to_use, features_to_use_static, rec_ids,
+                        reduced_seq_length, sub_seq_length, num_sub_sequences, batch_size, test_phase):
+
+    rec_ids_list = np.repeat(rec_ids, num_sub_sequences)
+
+    batch_lengths = np.repeat([sub_seq_length], len(rec_ids) * num_sub_sequences)
+
+    batch_length = pd.concat([pd.DataFrame(rec_ids_list, columns=[c.REC_ID_NAME]),
+                              pd.DataFrame(batch_lengths, columns=['batch_timesteps'])], axis=1)
+
+    x_arr_feature_transformed, y_arr_feature_transformed, batch_sizes = \
+        custom_sort_for_stateful_lstm(x_feature, x_preprocessed, y_preprocessed,
+                                      fixed_seq_length=reduced_seq_length,
+                                      sub_seq_length=sub_seq_length,
+                                      batch_size=batch_size,
+                                      num_features=len(features_to_use) + len(features_to_use_static))
+
+    # If the batch sizes are not equal across all batches we create two separate dataloaders
+    if not batch_sizes.count(batch_sizes[0]) == len(batch_sizes):
+        custom_loader_orig_part1, custom_loader_orig_part2, _, _ = \
+            create_dataloader_if_batch_sizes_unequal(x_arr_feature_transformed, y_arr_feature_transformed,
+                                                     batch_size, batch_sizes, num_sub_sequences,
+                                                     batch_length,
+                                                     features_to_use=features_to_use + features_to_use_static,
+                                                     fixed_seq_length=reduced_seq_length,
+                                                     sub_seq_length=sub_seq_length)
+
+        if test_phase:
+            return [custom_loader_orig_part1, custom_loader_orig_part2], rec_ids_list
+
+        elif not test_phase:
+            return [custom_loader_orig_part1, custom_loader_orig_part2]
+
+    if batch_sizes.count(batch_sizes[0]) == len(batch_sizes):
+        custom_loader_orig, _ = create_dataloader_if_batch_sizes_equal(x_arr_feature_transformed,
+                                                                       y_arr_feature_transformed,
+                                                                       batch_size,
+                                                                       batch_length,
+                                                                       features_to_use=features_to_use + features_to_use_static,
+                                                                       sub_seq_length=sub_seq_length)
+
+        if test_phase:
+            return [custom_loader_orig], rec_ids_list
+        elif not test_phase:
+            return [custom_loader_orig]
+
+
 def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_signals_new: pd.DataFrame,
                                                             df_clinical_information: pd.DataFrame,
                                                             df_static_information: pd.DataFrame,
                                                             x_data_to_be_fitted: pd.DataFrame,
                                                             x_data_to_be_transformed: pd.DataFrame,
+                                                            df_static_train: pd.DataFrame,
+                                                            df_static_test: pd.DataFrame,
+                                                            selected_columns_static_data: List,
                                                             columns_to_use: List[str], feature_name: str,
                                                             reduced_seq_length, sub_seq_length,
                                                             fs: int, shuffle: bool = False,
@@ -1343,6 +1578,7 @@ def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_si
     x_feature_fit = df_feature[df_feature[c.REC_ID_NAME].isin(x_data_to_be_fitted[c.REC_ID_NAME].unique())].reset_index(
         drop=True).copy()
 
+    # To shuffle the rec ids in the batches during training
     if shuffle:
         recid_groups = [df for _, df in x_feature_transform.groupby(c.REC_ID_NAME)]
         random.shuffle(recid_groups)
@@ -1375,35 +1611,36 @@ def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_si
     batch_length = pd.concat([pd.DataFrame(rec_ids_list, columns=[c.REC_ID_NAME]),
                               pd.DataFrame(batch_lengths, columns=['batch_timesteps'])], axis=1)
 
-    selected_columns_fit_static = []
+    print(batch_length)
+
     if add_static_data:
         # The static data will be processed (i.e., standard scaled, removing highly correlated features) and
         # added to the signals data
-        x_arr_static_fit, _, selected_columns_fit_static, rec_id_list_static_fit, _ = preprocess_static_data(
-            df_static_information,
-            x_feature_fit,
-            x_feature_fit,
-            threshold_correlation=0.85)
+        # x_arr_static_fit, _, selected_columns_fit_static, rec_id_list_static_fit, _ = preprocess_static_data(
+        #     df_static_information,
+        #     x_feature_fit,
+        #     x_feature_fit,
+        #     threshold_correlation=0.85)
+        #
+        # x_arr_static_transform, _, _, _, rec_id_list_static_transform = preprocess_static_data(
+        #     df_static_information,
+        #     x_feature_fit,
+        #     x_feature_transform,
+        #     threshold_correlation=0.85)
+        #
+        # # Safety check if the data consequently processed for the correct order of rec ids
+        # assert np.logical_and((np.array(rec_id_list_static_transform) == np.array(rec_ids_transform)).all(),
+        #                       (np.array(rec_ids_transform) == np.array(x_feature_transform[c.REC_ID_NAME].unique())).all()), \
+        #     f'Rec ids of x_feature_transform inconsequentially sorted during preprocessing!'
+        #
+        # df_static_fit = pd.concat([pd.DataFrame(rec_id_list_static_fit, columns=[c.REC_ID_NAME]),
+        #                            pd.DataFrame(x_arr_static_fit, columns=selected_columns_fit_static)], axis=1)
+        # df_static_transform = pd.concat([pd.DataFrame(rec_id_list_static_transform, columns=[c.REC_ID_NAME]),
+        #                                  pd.DataFrame(x_arr_static_transform, columns=selected_columns_fit_static)],
+        #                                 axis=1)
 
-        x_arr_static_transform, _, _, _, rec_id_list_static_transform = preprocess_static_data(
-            df_static_information,
-            x_feature_fit,
-            x_feature_transform,
-            threshold_correlation=0.85)
-
-        # Safety check if the data consequently processed for the correct order of rec ids
-        assert np.logical_and((np.array(rec_id_list_static_transform) == np.array(rec_ids_transform)).all(),
-                              (np.array(rec_ids_transform) == np.array(x_feature_transform[c.REC_ID_NAME].unique())).all()), \
-            f'Rec ids of x_feature_transform inconsequentially sorted during preprocessing!'
-
-        df_static_fit = pd.concat([pd.DataFrame(rec_id_list_static_fit, columns=[c.REC_ID_NAME]),
-                                   pd.DataFrame(x_arr_static_fit, columns=selected_columns_fit_static)], axis=1)
-        df_static_transform = pd.concat([pd.DataFrame(rec_id_list_static_transform, columns=[c.REC_ID_NAME]),
-                                         pd.DataFrame(x_arr_static_transform, columns=selected_columns_fit_static)],
-                                        axis=1)
-
-        x_feature_fit = x_feature_fit.merge(df_static_fit, on=c.REC_ID_NAME).reset_index(drop=True)
-        x_feature_transform = x_feature_transform.merge(df_static_transform, on=c.REC_ID_NAME).reset_index(drop=True)
+        x_feature_fit = x_feature_fit.merge(df_static_train, on=c.REC_ID_NAME).reset_index(drop=True)
+        x_feature_transform = x_feature_transform.merge(df_static_test, on=c.REC_ID_NAME).reset_index(drop=True)
 
     # Drop the rec_id column from the X dataframe
     column_drop_pipeline = Pipeline([("columnDropper", ColumnDropperTransformer([c.REC_ID_NAME]))])
@@ -1412,7 +1649,7 @@ def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_si
     x_arr_feature_transformed = fit_and_transform_data(x_feature_fit, x_feature_transform, column_drop_pipeline)
     x_arr_feature_fitted = fit_and_transform_data(x_feature_fit, x_feature_fit, column_drop_pipeline)
 
-    total_cols = columns_to_use + selected_columns_fit_static
+    total_cols = columns_to_use + selected_columns_static_data
 
     # ColumnTransformer needs a pd.DataFrame if columns are provided so we re-convert to a pd.DataFrame
     x_feature_fitted = pd.DataFrame(data=x_arr_feature_fitted, index=np.arange(len(x_arr_feature_fitted)),
@@ -1441,7 +1678,7 @@ def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_si
         custom_sort_for_stateful_lstm(x_feature_transform, x_arr_feature_transformed, y_arr_feature_transformed,
                                       fixed_seq_length=reduced_seq_length, sub_seq_length=sub_seq_length,
                                       batch_size=params['batch_size'],
-                                      num_features=len(columns_to_use) + len(selected_columns_fit_static))
+                                      num_features=len(columns_to_use) + len(selected_columns_static_data))
 
     # If the batch sizes are not equal across all batches we create two separate dataloaders
     if not batch_sizes.count(batch_sizes[0]) == len(batch_sizes):
@@ -1449,7 +1686,7 @@ def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_si
             create_dataloader_if_batch_sizes_unequal(x_arr_feature_transformed, y_arr_feature_transformed,
                                                      params['batch_size'], batch_sizes, num_sub_sequences_fixed,
                                                      batch_length,
-                                                     features_to_use=columns_to_use + selected_columns_fit_static,
+                                                     features_to_use=columns_to_use + selected_columns_static_data,
                                                      fixed_seq_length=reduced_seq_length,
                                                      sub_seq_length=sub_seq_length)
 
@@ -1463,7 +1700,7 @@ def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_si
         custom_loader_orig, _ = create_dataloader_if_batch_sizes_equal(x_arr_feature_transformed,
                                                                        y_arr_feature_transformed, params['batch_size'],
                                                                        batch_length,
-                                                                       features_to_use=columns_to_use + selected_columns_fit_static,
+                                                                       features_to_use=columns_to_use + selected_columns_static_data,
                                                                        sub_seq_length=sub_seq_length)
 
         if test_phase:
@@ -1925,6 +2162,8 @@ def generate_custom_data_loaders(trial, df_signals: pd.DataFrame, x: pd.DataFram
 def generate_feature_data_loaders(trial, df_signals: pd.DataFrame, df_clinical_information: pd.DataFrame,
                                   df_static_information: pd.DataFrame,
                                   x_data_to_be_fitted: pd.DataFrame, x_data_to_be_transformed: pd.DataFrame,
+                                  x_train_static_data: pd.DataFrame, x_test_static_data: pd.DataFrame,
+                                  selected_columns_static_data: List[str],
                                   params: Dict, columns_to_use: List[str], feature_name: str, reduced_seq_length: int,
                                   sub_seq_length: int, fs: int, shuffle: bool = True,
                                   add_static_data: bool = False, test_phase: bool = False) -> List[DataLoader]:
@@ -1947,6 +2186,12 @@ def generate_feature_data_loaders(trial, df_signals: pd.DataFrame, df_clinical_i
     x_data_to_be_transformed : pd.DataFrame
         Dataframe that contains either the train/val/test data of rec ids.
         This data will be used create the final dataloader with.
+    x_train_static_data : pd.DataFrame
+        Dataframe that contains the static data for training.
+    x_test_static_data : pd.DataFrame
+        Dataframe that contains the static data for testing.
+    selected_columns_static_data : List[str]
+        Columns to use of the static data.
     columns_to_use : List[columns]
         Names of the columns you want to use for modeling.
     feature_name : str
@@ -1981,7 +2226,11 @@ def generate_feature_data_loaders(trial, df_signals: pd.DataFrame, df_clinical_i
     list_dls = custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_signals,
                                                                        df_clinical_information, df_static_information,
                                                                        x_data_to_be_fitted,
-                                                                       x_data_to_be_transformed, columns_to_use,
+                                                                       x_data_to_be_transformed,
+                                                                       x_train_static_data,
+                                                                       x_test_static_data,
+                                                                       selected_columns_static_data,
+                                                                       columns_to_use,
                                                                        feature_name, reduced_seq_length, sub_seq_length,
                                                                        fs, shuffle=shuffle,
                                                                        add_static_data=add_static_data,

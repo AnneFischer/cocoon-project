@@ -162,6 +162,7 @@ setup(
             'threadpoolctl==3.1.0',
             'torch==1.10.1',
             'torchaudio==0.10.1',
+            'torchtest==0.5',
             'torchvision==0.11.2',
             'tornado==6.1',
             'tqdm==4.62.3',

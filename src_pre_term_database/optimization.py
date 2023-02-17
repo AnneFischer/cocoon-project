@@ -7,28 +7,36 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from src_pre_term_database.data_processing_and_feature_engineering import generate_feature_data_loaders, \
-    train_val_test_split, preprocess_static_data
+    train_val_test_split, preprocess_static_data, preprocess_signal_data, generate_dataloader, \
+    add_static_data_to_signal_data, basic_preprocessing_static_data, basic_preprocessing_signal_data
 from src_pre_term_database.load_dataset import build_clinical_information_dataframe, build_demographics_dataframe
 import constants as c
 import matplotlib.pyplot as plt
 import datetime
 import optuna
 import joblib
-from src_pre_term_database.utils import read_settings
+from src_pre_term_database.utils import read_settings, convert_columns_to_numeric
 from sklearn.metrics import precision_score, recall_score, f1_score, precision_recall_curve, roc_auc_score, \
     average_precision_score
 import csv
 from timeit import default_timer as timer
 from sklearn.preprocessing import LabelEncoder
 import math
-from typing import List
+from typing import List, Dict
 import argparse
 import os
+from sklearn.model_selection import StratifiedGroupKFold
+from torch.utils.data import DataLoader
+
 
 settings_path = os.path.abspath("references/settings")
 
 file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
+
+
+class VariablesChangeException(Exception):
+  pass
 
 
 class EarlyStopping:
@@ -150,11 +158,19 @@ class OptimizationLSTM:
         # Therefore, you have to add logits as input (and not put the input through a sigmoid first)
         loss = self.loss_fn(y_pred, y)
 
+        a = list(self.model.parameters())[0].clone()
+
         # Getting gradients w.r.t. parameters
         loss.backward()
 
         # Updates parameters
         self.optimizer.step()
+
+        b = list(self.model.parameters())[0].clone()
+
+        assert not torch.equal(a.data, b.data)
+
+        print(list(self.model.parameters())[0].grad)
 
         return loss, y_pred
 
@@ -537,9 +553,8 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
 
         return loss, y_pred
 
-    def train_combined_model(self, trial, df_signals, df_clinical_information, df_static_information, X_train, X_val,
-                             model_optional, features_to_use, params, feature_name, add_static_data, test_phase,
-                             n_epochs=50):
+    def train_combined_model(self, trial, train_loader_list: List[DataLoader], test_loader_list: List[DataLoader],
+                             features_to_use, params, n_epochs=50):
         """The model is trained/validated/tested on each sub-sequence up until each entire
         sequence has been processed. The entire sequence length can be 50 time steps and the
         sub_sequence length can be 10 time steps for instance. We will make a prediction after each sub-sequence
@@ -554,24 +569,14 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
         Parameters
         ----------
         trial :
-        df_signals : pd.DataFrame
-            Original signal dataframe with the features_to_use present.
-        X_train : pd.DataFrame
-            Dataframe that contains the train samples.
-        X_val : pd.DataFrame
-            Dataframe that contains the validation samples.
-        features_to_use : List[str]
-            List with the names of features of sequential data you want to use for modeling.
-        num_sub_sequences : int
-            Number of sub-sequences necessary to process an entire sequence.
+        train_loader_list : List[DataLoader]
+        test_loader_list : List[DataLoader]
         params : dict
             Dictionary with the hyperparameters and its values.
         n_epochs : int
             Number of epochs for which you want to train your model.
         """
         torch.autograd.set_detect_anomaly(True)
-        # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=2, verbose=True)
         for epoch in range(1, n_epochs + 1):
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
@@ -579,27 +584,7 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
             self.final_train_prob.clear()
             self.final_val_prob.clear()
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            custom_train_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                     df_static_information,
-                                                                     X_train, X_train, params, features_to_use,
-                                                                     feature_name=feature_name,
-                                                                     reduced_seq_length=50, sub_seq_length=10,
-                                                                     fs=20, shuffle=True,
-                                                                     add_static_data=add_static_data,
-                                                                     test_phase=False)
-
-            custom_val_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                   df_static_information,
-                                                                   X_train, X_val, params, features_to_use,
-                                                                   feature_name=feature_name,
-                                                                   reduced_seq_length=50, sub_seq_length=10,
-                                                                   fs=20, shuffle=False,
-                                                                   add_static_data=add_static_data,
-                                                                   test_phase=False)
-
-            for train_loader in custom_train_loader_orig:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -659,7 +644,7 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
-                for val_loader in custom_val_loader_orig:
+                for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
                         # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -701,46 +686,29 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
                   f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
             print('-' * 50)
 
-            # early_stopping needs the validation loss to check if it has decreased
-            early_stopping(avg_sample_val_loss_epoch)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                params.update({'num_epochs': epoch})
-                break
-
         print('TRAINING COMPLETE')
 
         return avg_sample_val_loss_epoch, params
 
-    def final_train(self, trial, df_signals, df_clinical_information, df_static_information, X_train_val, params,
-                    features_to_use, feature_name, add_static_data, model_optional, n_epochs=50):
+    def final_train(self, train_loader_list, feature_name, add_static_data, fold_i, features_to_use,
+                    model_optional, n_epochs=50):
         """The final model will be trained with the optimal hyperparameters on the train+val datset."""
         output_path = file_paths['output_path'] + "/" + "model"
 
         current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
 
         if add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_lstm_feature_{feature_name}_combined_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_lstm_feature_{feature_name}_combined_seq_final_train'
 
         if not add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_lstm_feature_{feature_name}_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_lstm_feature_{feature_name}_seq_final_train'
 
         for epoch in range(1, n_epochs + 1):
             self.final_train_prob.clear()
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            train_val_loader = generate_feature_data_loaders(trial, df_signals,
-                                                             df_clinical_information, df_static_information,
-                                                             X_train_val, X_train_val, params,
-                                                             features_to_use,
-                                                             feature_name=feature_name,
-                                                             reduced_seq_length=50, sub_seq_length=10,
-                                                             fs=20, shuffle=True, add_static_data=add_static_data,
-                                                             test_phase=False)
-            for train_loader in train_val_loader:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -866,16 +834,16 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
         print(f'AUC score with max prob: {roc_auc_score(self.test_labels, self.final_max_test_probabilities)}')
         print(f'AP score with max prob: {average_precision_score(self.test_labels, self.final_max_test_probabilities)}')
 
-        results_dict = {'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
-                        'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
-                        'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
-                        'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
-                        'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
-                        'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
-                        'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
-                        'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
-                        'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
-                        'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}
+        results_dict = {f'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
+                        f'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
+                        f'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
+                        f'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
+                        f'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
+                        f'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
+                        f'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
+                        f'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
+                        f'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
+                        f'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}
 
         return all_test_predictions, all_test_probabilities, self.test_labels, results_dict
 
@@ -1696,8 +1664,8 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
 
         return loss, y_pred
 
-    def train(self, trial, df_signals, df_clinical_information, df_static_information, X_train, X_val, features_to_use,
-              num_sub_sequences, params, feature_name, add_static_data, n_epochs=50):
+    def train(self, trial, train_loader_list: List[DataLoader], test_loader_list: List[DataLoader],
+              params, n_epochs=50):
         """The model is trained/validated/tested on each sub-sequence up until each entire
         sequence has been processed. The entire sequence length can be 50 time steps and the
         sub_sequence length can be 10 time steps for instance. We will make a prediction after each sub-sequence
@@ -1712,24 +1680,16 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
         Parameters
         ----------
         trial :
-        df_signals : pd.DataFrame
-            Original signal dataframe with the features_to_use present.
-        X_train : pd.DataFrame
-            Dataframe that contains the train samples.
-        X_val : pd.DataFrame
-            Dataframe that contains the validation samples.
-        features_to_use : List[str]
-            List with the names of features you want to use for modeling.
-        num_sub_sequences : int
-            Number of sub-sequences necessary to process an entire sequence.
+        train_loader_list : List[DataLoader]
+            List containing one or more DataLoader objects containing training data.
+        test_loader_list : List[DataLoader]
+            List containing one or more DataLoader objects containing test data.
         params : dict
             Dictionary with the hyperparameters and its values.
         n_epochs : int
             Number of epochs for which you want to train your model.
         """
         torch.autograd.set_detect_anomaly(True)
-        # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=2, verbose=True)
         for epoch in range(1, n_epochs + 1):
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
@@ -1737,27 +1697,7 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
             self.final_train_prob.clear()
             self.final_val_prob.clear()
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            custom_train_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                     df_static_information,
-                                                                     X_train, X_train, params, features_to_use,
-                                                                     feature_name=feature_name,
-                                                                     reduced_seq_length=50, sub_seq_length=10,
-                                                                     fs=20, shuffle=True,
-                                                                     add_static_data=add_static_data,
-                                                                     test_phase=False)
-
-            custom_val_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                   df_static_information,
-                                                                   X_train, X_val, params, features_to_use,
-                                                                   feature_name=feature_name,
-                                                                   reduced_seq_length=50, sub_seq_length=10,
-                                                                   fs=20, shuffle=False,
-                                                                   add_static_data=add_static_data,
-                                                                   test_phase=False)
-
-            for train_loader in custom_train_loader_orig:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -1803,7 +1743,7 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
-                for val_loader in custom_val_loader_orig:
+                for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
                         # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -1843,44 +1783,28 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
                   f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
             print('-' * 50)
 
-            # early_stopping needs the validation loss to check if it has decreased
-            early_stopping(avg_sample_val_loss_epoch)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                params.update({'num_epochs': epoch})
-                break
-
         print('TRAINING COMPLETE')
 
         return avg_sample_val_loss_epoch, params
 
-    def final_train(self, trial, df_signals, df_clinical_information, df_static_information, X_train_val, params,
-                    features_to_use, feature_name, add_static_data, n_epochs=50):
+    def final_train(self, train_loader_list, feature_name, add_static_data, fold_i, n_epochs=50):
         """The final model will be trained with the optimal hyperparameters on the train+val datset."""
         output_path = file_paths['output_path'] + "/" + "model"
 
         current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
 
         if add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_lstm_feature_{feature_name}_combined_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_lstm_feature_{feature_name}_combined_seq_final_train'
 
         if not add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_lstm_feature_{feature_name}_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_lstm_feature_{feature_name}_seq_final_train'
 
         for epoch in range(1, n_epochs + 1):
             self.final_train_prob.clear()
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            train_val_loader = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                             df_static_information, X_train_val, X_train_val, params,
-                                                             features_to_use, feature_name=feature_name,
-                                                             reduced_seq_length=50, sub_seq_length=10, fs=20,
-                                                             shuffle=True, add_static_data=add_static_data,
-                                                             test_phase=False)
-            for train_loader in train_val_loader:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -1889,9 +1813,8 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
 
                     # We manually reset the hidden states and cells after an entire sequence is processed
                     if t % self.num_sub_sequences == 0:
-                        print(
-                            f'The hidden states and cells are resetted at the beginning of epoch {epoch}, '
-                            f'batch {t} of train_loader')
+                        print(f'The hidden states and cells are resetted at the beginning of epoch {epoch}, '
+                              f'batch {t} of train_loader')
                         self.reset_states(batch_size=batch_size)
 
                     x_batch = x_batch.to(self.device)
@@ -1981,6 +1904,7 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
 
         self.test_labels = list(np.array(np.concatenate([array for array in self.test_labels], axis=0),
                                          dtype=np.int64).flat)
+
         self.final_test_prob = list(np.array(np.concatenate([array for array in self.final_test_prob], axis=0)).flat)
         self.final_test_predictions = list(np.array(np.concatenate([array for array in self.final_test_predictions],
                                                                    axis=0)).flat)
@@ -2004,18 +1928,20 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
         print(f'AUC score with max prob: {roc_auc_score(self.test_labels, self.final_max_test_probabilities)}')
         print(f'AP score with max prob: {average_precision_score(self.test_labels, self.final_max_test_probabilities)}')
 
-        results_dict = {'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
-                        'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
-                        'specificity_mean_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_test_predictions)),
-                        'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
-                        'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
-                        'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
-                        'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
-                        'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
-                        'specificity_max_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_max_test_predictions)),
-                        'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
-                        'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
-                        'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}
+        results_dict = {f'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
+                        f'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
+                        f'specificity_mean_pred': recall_score(np.logical_not(self.test_labels),
+                                                               np.logical_not(self.final_test_predictions)),
+                        f'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
+                        f'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
+                        f'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
+                        f'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
+                        f'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
+                        f'specificity_max_pred': recall_score(np.logical_not(self.test_labels),
+                                                              np.logical_not(self.final_max_test_predictions)),
+                        f'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
+                        f'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
+                        f'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}
 
         return all_test_predictions, all_test_probabilities, self.test_labels, results_dict
 
@@ -2242,8 +2168,7 @@ class OptimizationTCNFeatureSequenceCombinedCopies:
 
         return loss, y_pred
 
-    def train(self, trial, df_signals, df_clinical_information, df_static_information, X_train, X_val,
-              features_to_use, params, feature_name, add_static_data, n_epochs=50):
+    def train(self, trial, train_loader_list, test_loader_list: List[DataLoader], params: Dict, n_epochs=50):
         """The model is trained/validated/tested on each sub-sequence up until each entire
         sequence has been processed. The entire sequence length is 28800 time steps and the
         sub_sequence length is 200 time steps. We will make a prediction after each sub-sequence
@@ -2263,22 +2188,14 @@ class OptimizationTCNFeatureSequenceCombinedCopies:
         Parameters
         ----------
         trial :
-        df_signals : pd.DataFrame
-            Original signal dataframe with the features_to_use present.
-        X_train : pd.DataFrame
-            Dataframe that contains the train samples.
-        X_val : pd.DataFrame
-            Dataframe that contains the validation samples.
-        features_to_use : List[str]
-            List with the names of features you want to use for modeling.
+        train_loader_list : List[DataLoader]
+        test_loader_list : List[DataLoader]
         params : dict
             Dictionary with the hyperparameters and its values.
         n_epochs : int
             Number of epochs for which you want to train your model.
         """
         torch.autograd.set_detect_anomaly(True)
-        # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=2, verbose=True)
         for epoch in range(1, n_epochs + 1):
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
@@ -2286,27 +2203,7 @@ class OptimizationTCNFeatureSequenceCombinedCopies:
             self.final_train_prob.clear()
             self.final_val_prob.clear()
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            custom_train_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                     df_static_information,
-                                                                     X_train, X_train, params, features_to_use,
-                                                                     feature_name=feature_name,
-                                                                     reduced_seq_length=50, sub_seq_length=10,
-                                                                     fs=20, shuffle=True,
-                                                                     add_static_data=add_static_data,
-                                                                     test_phase=False)
-
-            custom_val_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                   df_static_information,
-                                                                   X_train, X_val, params, features_to_use,
-                                                                   feature_name=feature_name,
-                                                                   reduced_seq_length=50, sub_seq_length=10,
-                                                                   fs=20, shuffle=False,
-                                                                   add_static_data=add_static_data,
-                                                                   test_phase=False)
-
-            for train_loader in custom_train_loader_orig:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
                     batch_size_train = x_batch.shape[0]
@@ -2342,7 +2239,7 @@ class OptimizationTCNFeatureSequenceCombinedCopies:
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
-                for val_loader in custom_val_loader_orig:
+                for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
                         # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -2380,46 +2277,28 @@ class OptimizationTCNFeatureSequenceCombinedCopies:
                   f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
             print('-' * 50)
 
-            # early_stopping needs the validation loss to check if it has decreased
-            early_stopping(avg_sample_val_loss_epoch)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                params.update({'num_epochs': epoch})
-                break
-
         print('TRAINING COMPLETE')
 
         return avg_sample_val_loss_epoch, params
 
-    def final_train(self, trial, df_signals, df_clinical_information, df_static_information, X_train_val, params,
-                    features_to_use, feature_name, add_static_data, n_epochs=50):
+    def final_train(self, train_loader_list, feature_name, add_static_data, fold_i, n_epochs=50):
         """The final model will be trained with the optimal hyperparameters on the train+val datset."""
         output_path = file_paths['output_path'] + "/" + "model"
 
         current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
 
         if add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_tcn_feature_{feature_name}_combined_copies_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_tcn_feature_{feature_name}_combined_copies_seq_final_train'
 
         if not add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_tcn_feature_{feature_name}_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_tcn_feature_{feature_name}_seq_final_train'
 
         for epoch in range(1, n_epochs + 1):
             self.final_train_prob.clear()
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            train_val_loader = generate_feature_data_loaders(trial, df_signals,
-                                                             df_clinical_information, df_static_information,
-                                                             X_train_val, X_train_val, params,
-                                                             features_to_use,
-                                                             feature_name=feature_name,
-                                                             reduced_seq_length=50, sub_seq_length=10,
-                                                             fs=20, shuffle=True, add_static_data=add_static_data,
-                                                             test_phase=False)
-            for train_loader in train_val_loader:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -2765,8 +2644,8 @@ class OptimizationTCNFeatureSequenceCombined:
 
         return loss, y_pred
 
-    def train(self, trial, df_signals, df_clinical_information, df_static_information, X_train, X_val,
-              features_to_use, params, feature_name, add_static_data, n_epochs=50):
+    def train(self, trial, train_loader_list: List[DataLoader], test_loader_list: List[DataLoader],
+              features_to_use, params, n_epochs=50):
         """The model is trained/validated/tested on each sub-sequence up until each entire
         sequence has been processed. The entire sequence length is 28800 time steps and the
         sub_sequence length is 200 time steps. We will make a prediction after each sub-sequence
@@ -2800,8 +2679,6 @@ class OptimizationTCNFeatureSequenceCombined:
             Number of epochs for which you want to train your model.
         """
         torch.autograd.set_detect_anomaly(True)
-        # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=2, verbose=True)
         for epoch in range(1, n_epochs + 1):
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
@@ -2809,27 +2686,7 @@ class OptimizationTCNFeatureSequenceCombined:
             self.final_train_prob.clear()
             self.final_val_prob.clear()
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            custom_train_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                     df_static_information,
-                                                                     X_train, X_train, params, features_to_use,
-                                                                     feature_name=feature_name,
-                                                                     reduced_seq_length=50, sub_seq_length=10,
-                                                                     fs=20, shuffle=True,
-                                                                     add_static_data=add_static_data,
-                                                                     test_phase=False)
-
-            custom_val_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                   df_static_information,
-                                                                   X_train, X_val, params, features_to_use,
-                                                                   feature_name=feature_name,
-                                                                   reduced_seq_length=50, sub_seq_length=10,
-                                                                   fs=20, shuffle=False,
-                                                                   add_static_data=add_static_data,
-                                                                   test_phase=False)
-
-            for train_loader in custom_train_loader_orig:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
                     batch_size_train = x_batch.shape[0]
@@ -2879,7 +2736,7 @@ class OptimizationTCNFeatureSequenceCombined:
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
-                for val_loader in custom_val_loader_orig:
+                for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
                         # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -2924,46 +2781,28 @@ class OptimizationTCNFeatureSequenceCombined:
                   f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
             print('-' * 50)
 
-            # early_stopping needs the validation loss to check if it has decreased
-            early_stopping(avg_sample_val_loss_epoch)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                params.update({'num_epochs': epoch})
-                break
-
         print('TRAINING COMPLETE')
 
         return avg_sample_val_loss_epoch, params
 
-    def final_train(self, trial, df_signals, df_clinical_information, df_static_information, X_train_val, params,
-                    features_to_use, feature_name, add_static_data, n_epochs=50):
-        """The final model will be trained with the optimal hyperparameters on the train+val datset."""
+    def final_train(self, train_loader_list, features_to_use, feature_name, add_static_data, fold_i, n_epochs=50):
+        """The final model will be trained with the optimal hyperparameters after nested cross validation."""
         output_path = file_paths['output_path'] + "/" + "model"
 
         current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
 
         if add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_tcn_feature_{feature_name}_combined_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_tcn_feature_{feature_name}_combined_seq_final_train'
 
         if not add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_tcn_feature_{feature_name}_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_tcn_feature_{feature_name}_seq_final_train'
 
         for epoch in range(1, n_epochs + 1):
             self.final_train_prob.clear()
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            train_val_loader = generate_feature_data_loaders(trial, df_signals,
-                                                             df_clinical_information, df_static_information,
-                                                             X_train_val, X_train_val, params,
-                                                             features_to_use,
-                                                             feature_name=feature_name,
-                                                             reduced_seq_length=50, sub_seq_length=10,
-                                                             fs=20, shuffle=True, add_static_data=add_static_data,
-                                                             test_phase=False)
-            for train_loader in train_val_loader:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -2991,6 +2830,8 @@ class OptimizationTCNFeatureSequenceCombined:
                     avg_train_batch_loss, y_pred = self.train_step_combined(x_batch_seq, x_batch_static, y_batch)
 
                     self.get_predictions_binary_model(y_pred, train=True, val=False, test=False)
+                    print(f'Train probs: {self.train_probabilities}')
+                    print(f'Y batch: {y_batch}')
 
                     # After an entire sequence is processed, we want to know the average prediction over the entire
                     # sequence and use that as a final prediction for the entire sequence
@@ -3219,6 +3060,8 @@ class OptimizationTCNFeatureSequence:
             predictions = self.test_predictions
             probabilities = self.test_probabilities
 
+        print(f'Test probabilities:{probabilities}')
+
         # Calculate the mean prediction by taking the average over all sub_sequences that make up
         # one total sequence. The variable predictions contains all the sub_sequence predictions
         # belonging to batch_size rec ids.
@@ -3285,6 +3128,7 @@ class OptimizationTCNFeatureSequence:
 
         # Data is first moved to cpu and then converted to numpy array
         true_label = y.cpu().data.numpy()
+        print(f'True label: {true_label}')
         mean_pred, mean_prob, max_pred, max_prob = self.obtain_correct_classified_instances(t,
                                                                                             train=train,
                                                                                             val=val,
@@ -3342,8 +3186,8 @@ class OptimizationTCNFeatureSequence:
 
         return loss, y_pred
 
-    def train(self, trial, df_signals, df_clinical_information, df_static_information, X_train, X_val,
-              features_to_use, params, feature_name, add_static_data, n_epochs=50):
+    def train(self, trial, train_loader_list: List[DataLoader], test_loader_list: List[DataLoader],
+              params, n_epochs=50):
         """The model is trained/validated/tested on each sub-sequence up until each entire
         sequence has been processed. The entire sequence length is 28800 time steps and the
         sub_sequence length is 200 time steps. We will make a prediction after each sub-sequence
@@ -3363,24 +3207,14 @@ class OptimizationTCNFeatureSequence:
         Parameters
         ----------
         trial :
-        df_signals : pd.DataFrame
-            Original signal dataframe with the features_to_use present.
-        X_train : pd.DataFrame
-            Dataframe that contains the train samples.
-        X_val : pd.DataFrame
-            Dataframe that contains the validation samples.
-        features_to_use : List[str]
-            List with the names of features you want to use for modeling.
-        num_sub_sequences : int
-            Number of sub-sequences necessary to process an entire sequence.
+        train_loader_list : List[DataLoader]
+        test_loader_list : List[DataLoader]
         params : dict
             Dictionary with the hyperparameters and its values.
         n_epochs : int
             Number of epochs for which you want to train your model.
         """
         torch.autograd.set_detect_anomaly(True)
-        # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=2, verbose=True)
         for epoch in range(1, n_epochs + 1):
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
@@ -3388,27 +3222,7 @@ class OptimizationTCNFeatureSequence:
             self.final_train_prob.clear()
             self.final_val_prob.clear()
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            custom_train_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                     df_static_information,
-                                                                     X_train, X_train, params, features_to_use,
-                                                                     feature_name=feature_name,
-                                                                     reduced_seq_length=50, sub_seq_length=10,
-                                                                     fs=20, shuffle=True,
-                                                                     add_static_data=add_static_data,
-                                                                     test_phase=False)
-
-            custom_val_loader_orig = generate_feature_data_loaders(trial, df_signals, df_clinical_information,
-                                                                   df_static_information,
-                                                                   X_train, X_val, params, features_to_use,
-                                                                   feature_name=feature_name,
-                                                                   reduced_seq_length=50, sub_seq_length=10,
-                                                                   fs=20, shuffle=False,
-                                                                   add_static_data=add_static_data,
-                                                                   test_phase=False)
-
-            for train_loader in custom_train_loader_orig:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -3445,7 +3259,7 @@ class OptimizationTCNFeatureSequence:
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
-                for val_loader in custom_val_loader_orig:
+                for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
                         # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -3482,46 +3296,27 @@ class OptimizationTCNFeatureSequence:
                   f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
             print('-' * 50)
 
-            # early_stopping needs the validation loss to check if it has decreased
-            early_stopping(avg_sample_val_loss_epoch)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                params.update({'num_epochs': epoch})
-                break
-
         print('TRAINING COMPLETE')
 
         return avg_sample_val_loss_epoch, params
 
-    def final_train(self, trial, df_signals, df_clinical_information, df_static_information, X_train_val, params,
-                    features_to_use, feature_name, add_static_data, n_epochs=50):
+    def final_train(self, train_loader_list, feature_name, add_static_data, fold_i, n_epochs=50):
         """The final model will be trained with the optimal hyperparameters on the train+val datset."""
         output_path = file_paths['output_path'] + "/" + "model"
-
         current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
 
         if add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_tcn_feature_{feature_name}_combined_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_tcn_feature_{feature_name}_combined_seq_final_train'
 
         if not add_static_data:
-            file_name_output = f'{current_date_and_time}_best_model_tcn_feature_{feature_name}_seq_final_train'
+            file_name_output = f'{current_date_and_time}_fold_{fold_i}_best_model_tcn_feature_{feature_name}_seq_final_train'
 
         for epoch in range(1, n_epochs + 1):
             self.final_train_prob.clear()
             total_train_loss_epoch = 0.0
             correct_train, total_samples_train = 0, 0
 
-            # At the beginning of every epoch the rec_ids in X_train are shuffled such that
-            # the batches contain different rec ids in each epoch
-            train_val_loader = generate_feature_data_loaders(trial, df_signals,
-                                                             df_clinical_information, df_static_information,
-                                                             X_train_val, X_train_val, params,
-                                                             features_to_use,
-                                                             feature_name=feature_name,
-                                                             reduced_seq_length=50, sub_seq_length=10,
-                                                             fs=20, shuffle=True, add_static_data=add_static_data,
-                                                             test_phase=False)
-            for train_loader in train_val_loader:
+            for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
 
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
@@ -3636,35 +3431,50 @@ class OptimizationTCNFeatureSequence:
         print(f'AUC score with max prob: {roc_auc_score(self.test_labels, self.final_max_test_probabilities)}')
         print(f'AP score with max prob: {average_precision_score(self.test_labels, self.final_max_test_probabilities)}')
 
-        results_dict = {'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
-                        'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
-                        'specificity_mean_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_test_predictions)),
-                        'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
-                        'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
-                        'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
-                        'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
-                        'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
-                        'specificity_max_pred': recall_score(np.logical_not(self.test_labels), np.logical_not(self.final_max_test_predictions)),
-                        'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
-                        'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
-                        'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}
+        results_dict = {f'precision_mean_pred': precision_score(self.test_labels, self.final_test_predictions),
+                        f'recall_mean_pred': recall_score(self.test_labels, self.final_test_predictions),
+                        f'specificity_mean_pred': recall_score(np.logical_not(self.test_labels),
+                                                               np.logical_not(self.final_test_predictions)),
+                        f'f1_mean_pred': f1_score(self.test_labels, self.final_test_predictions),
+                        f'auc_mean_prob': roc_auc_score(self.test_labels, self.final_test_prob),
+                        f'ap_mean_prob': average_precision_score(self.test_labels, self.final_test_prob),
+                        f'precision_max_pred': precision_score(self.test_labels, self.final_max_test_predictions),
+                        f'recall_max_pred': recall_score(self.test_labels, self.final_max_test_predictions),
+                        f'specificity_max_pred': recall_score(np.logical_not(self.test_labels),
+                                                              np.logical_not(self.final_max_test_predictions)),
+                        f'f1_max_pred': f1_score(self.test_labels, self.final_max_test_predictions),
+                        f'auc_max_prob': roc_auc_score(self.test_labels, self.final_max_test_probabilities),
+                        f'ap_max_prob': average_precision_score(self.test_labels, self.final_max_test_probabilities)}
 
         return all_test_predictions, all_test_probabilities, self.test_labels, results_dict
 
 
 class ObjectiveLSTMFeatureCombinedModel(object):
-    def __init__(self, signals, clinical_information, static_information, x_train, x_val,
-                 feature_name, features_to_use, add_static_data, num_static_features, out_file):
-        self.signals = signals
-        self.clinical_information = clinical_information
-        self.static_information = static_information
+    def __init__(self, trial, x_train, x_test, x_train_processed, x_test_processed, y_train_processed, y_test_processed,
+                 rec_ids_train_inner, rec_ids_test_inner, rec_ids_train_outer, rec_ids_test_outer, pos_weight,
+                 feature_name, num_sub_sequences, features_to_use, features_to_use_static, out_file,
+                 outer_fold, inner_fold):
         self.x_train = x_train
-        self.x_val = x_val
+        self.x_test = x_test
+        self.x_train_processed = x_train_processed
+        self.x_test_processed = x_test_processed
+        self.y_train_processed = y_train_processed
+        self.y_test_processed = y_test_processed
+        self.rec_ids_train_inner = rec_ids_train_inner
+        self.rec_ids_test_inner = rec_ids_test_inner
+        self.rec_ids_train_outer = rec_ids_train_outer
+        self.rec_ids_test_outer = rec_ids_test_outer
+        self.pos_weight = pos_weight
         self.feature_name = feature_name
+        self.num_sub_sequences = num_sub_sequences
         self.features_to_use = features_to_use
-        self.add_static_data = add_static_data
-        self.num_static_features = num_static_features
+        self.features_to_use_static = features_to_use_static
         self.out_file = out_file
+        self.num_static_features = len(self.features_to_use_static)
+        self.outer_fold = outer_fold
+        self.inner_fold = inner_fold
+
+        self.loss = self.calculate_loss(trial)
 
     # Build a model by implementing define-by-run design from Optuna
     def build_model_custom(self, trial, hidden_dim, params):
@@ -3717,15 +3527,14 @@ class ObjectiveLSTMFeatureCombinedModel(object):
 
         return nn.Sequential(*layers), params
 
-    def __call__(self, trial):
+    def calculate_loss(self, trial):
         params = {
-            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
             'layer_dim': trial.suggest_int('layer_dim', 1, 3),
             'hidden_dim_seq': trial.suggest_int('hidden_dim_seq', 5, 15, 1),
             'hidden_dim_static': trial.suggest_int('hidden_dim_static', 15, 25, 1),
-            'weight_decay': trial.suggest_loguniform('weight_decay', 1e-6, 1e-1),
             'bidirectional': trial.suggest_categorical('bidirectional', [True, False]),
-            'num_epochs': 10,
+            'num_epochs': 6,
             'batch_size': trial.suggest_int('batch_size', 10, 60, 10),
             'feature_name': self.feature_name
         }
@@ -3736,13 +3545,21 @@ class ObjectiveLSTMFeatureCombinedModel(object):
         else:
             params['drop_out_lstm'] = trial.suggest_uniform('drop_out_lstm', 0.1, 0.5)
 
+        train_loader_list = generate_dataloader(self.x_train, self.x_train_processed, self.y_train_processed,
+                                                self.features_to_use, self.features_to_use_static,
+                                                self.rec_ids_train_inner, FLAGS.reduced_seq_length,
+                                                FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                params['batch_size'], test_phase=False)
+
+        test_loader_list, rec_ids_list = generate_dataloader(self.x_test, self.x_test_processed, self.y_test_processed,
+                                                             self.features_to_use, self.features_to_use_static,
+                                                             self.rec_ids_test_inner, FLAGS.reduced_seq_length,
+                                                             FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                             params['batch_size'], test_phase=True)
+
         n_classes = 1
         input_dim_seq = len(self.features_to_use)
-        input_dim_static = self.num_static_features
-        reduced_sequence_length = 50
-        sub_sequence_length = 10
-        # The num_sub_sequences variable is the number of sub_sequences necessary to complete an entire sequence
-        num_sub_sequences = int(reduced_sequence_length / sub_sequence_length)
+        input_dim_static = len(self.features_to_use_static)
         device = 'cpu'
 
         optional_model_part, params = self.build_model_custom(trial,
@@ -3762,50 +3579,58 @@ class ObjectiveLSTMFeatureCombinedModel(object):
 
         # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
         # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
-        pos_weight = torch.Tensor([((89 + 68) / 23)])
+        pos_weight = torch.Tensor([self.pos_weight])
 
         loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-        optimizer = optim.Adam(model_lstm_combined.parameters(),
-                               lr=params['learning_rate'],
-                               weight_decay=params['weight_decay'])
+        optimizer = optim.Adam(model_lstm_combined.parameters(), lr=params['learning_rate'])
 
         opt_lstm = OptimizationCombinedLSTM(model=model_lstm_combined, loss_fn=loss_fn, optimizer=optimizer,
-                                            num_sub_sequences=num_sub_sequences, device=device)
+                                            num_sub_sequences=self.num_sub_sequences, device=device)
 
         start = timer()
 
-        loss, params = opt_lstm.train_combined_model(trial, self.signals, self.clinical_information,
-                                                     self.static_information, self.x_train,
-                                                     self.x_val, optional_model_part, self.features_to_use,
-                                                     params, params['feature_name'],
-                                                     add_static_data=self.add_static_data, test_phase=False,
-                                                     n_epochs=params['num_epochs'])
+        loss, params = opt_lstm.train_combined_model(trial, train_loader_list, test_loader_list, self.features_to_use,
+                                                     params, n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, run_time])
+        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+                         self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
         return loss
 
 
 class ObjectiveTcnFeatureCombinedModelWithCopies(object):
-    def __init__(self, signals, clinical_information, static_information, x_train, x_val,
-                 feature_name, features_to_use, add_static_data, out_file, num_static_features):
-        self.signals = signals
-        self.clinical_information = clinical_information
-        self.static_information = static_information
+    def __init__(self, trial, x_train, x_test, x_train_processed, x_test_processed, y_train_processed, y_test_processed,
+                 rec_ids_train_inner, rec_ids_test_inner, rec_ids_train_outer, rec_ids_test_outer, pos_weight,
+                 feature_name, num_sub_sequences, features_to_use, features_to_use_static, out_file,
+                 outer_fold, inner_fold):
         self.x_train = x_train
-        self.x_val = x_val
+        self.x_test = x_test
+        self.x_train_processed = x_train_processed
+        self.x_test_processed = x_test_processed
+        self.y_train_processed = y_train_processed
+        self.y_test_processed = y_test_processed
+        self.rec_ids_train_inner = rec_ids_train_inner
+        self.rec_ids_test_inner = rec_ids_test_inner
+        self.rec_ids_train_outer = rec_ids_train_outer
+        self.rec_ids_test_outer = rec_ids_test_outer
+        self.pos_weight = pos_weight
         self.feature_name = feature_name
+        self.num_sub_sequences = num_sub_sequences
         self.features_to_use = features_to_use
-        self.add_static_data = add_static_data
+        self.features_to_use_static = features_to_use_static
         self.out_file = out_file
-        self.num_static_features = num_static_features
+        self.num_static_features = len(self.features_to_use_static)
+        self.outer_fold = outer_fold
+        self.inner_fold = inner_fold
+
+        self.loss = self.calculate_loss(trial)
 
     # Build a model by implementing define-by-run design from Optuna
     def build_model_custom(self, trial, hidden_dim, params):
@@ -3858,28 +3683,35 @@ class ObjectiveTcnFeatureCombinedModelWithCopies(object):
 
         return nn.Sequential(*layers), params
 
-    def __call__(self, trial):
+    def calculate_loss(self, trial):
         params = {
-            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
             'num_hidden_units_per_layer': trial.suggest_int('num_hidden_units_per_layer', 25, 35, 1),
-            'weight_decay': trial.suggest_loguniform('weight_decay', 1e-6, 1e-1),
             'kernel_size': trial.suggest_int('kernel_size', 3, 9, 2),
-            'num_epochs': 10,
+            'num_epochs': 6,
             'drop_out': trial.suggest_uniform('drop_out', 0.1, 0.5),
             'batch_size': trial.suggest_int('batch_size', 10, 60, 10),
             'feature_name': self.feature_name
         }
 
+        train_loader_list = generate_dataloader(self.x_train, self.x_train_processed, self.y_train_processed,
+                                                self.features_to_use, self.features_to_use_static,
+                                                self.rec_ids_train_inner, FLAGS.reduced_seq_length,
+                                                FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                params['batch_size'], test_phase=False)
+
+        test_loader_list, rec_ids_list = generate_dataloader(self.x_test, self.x_test_processed, self.y_test_processed,
+                                                             self.features_to_use, self.features_to_use_static,
+                                                             self.rec_ids_test_inner, FLAGS.reduced_seq_length,
+                                                             FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                             params['batch_size'], test_phase=True)
+
         n_classes = 1
         input_channels = len(self.features_to_use) + self.num_static_features
-        reduced_sequence_length = 50
-        sub_sequence_length = 10
-        # The num_sub_sequences variable is the number of sub_sequences necessary to complete an entire sequence
-        num_sub_sequences = int(reduced_sequence_length / sub_sequence_length)
         device = 'cpu'
 
         params['num_levels'] = get_num_levels_based_on_receptive_field(kernel_size=params['kernel_size'],
-                                                                       receptive_field=sub_sequence_length,
+                                                                       receptive_field=FLAGS.sub_seq_length,
                                                                        dilation_exponential_base=2)
 
         channel_sizes = [params['num_hidden_units_per_layer']] * params['num_levels']
@@ -3899,48 +3731,59 @@ class ObjectiveTcnFeatureCombinedModelWithCopies(object):
 
         # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
         # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
-        pos_weight = torch.Tensor([((89 + 68) / 23)])
+        pos_weight = torch.Tensor([self.pos_weight])
 
         loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-        optimizer = optim.Adam(model_tcn_combined.parameters(), lr=params['learning_rate'],
-                               weight_decay=params['weight_decay'])
+        optimizer = optim.Adam(model_tcn_combined.parameters(), lr=params['learning_rate'])
 
         opt_tcn = OptimizationTCNFeatureSequenceCombinedCopies(model=model_tcn_combined, loss_fn=loss_fn,
-                                                               optimizer=optimizer, num_sub_sequences=num_sub_sequences,
+                                                               optimizer=optimizer,
+                                                               num_sub_sequences=self.num_sub_sequences,
                                                                device=device)
 
         # Keep track of evals
         start = timer()
-        loss, params = opt_tcn.train(trial, self.signals, self.clinical_information, self.static_information,
-                                     self.x_train, self.x_val, self.features_to_use, params,
-                                     feature_name=params['feature_name'], add_static_data=self.add_static_data,
-                                     n_epochs=params['num_epochs'])
+        loss, params = opt_tcn.train(trial, train_loader_list, test_loader_list, params, n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, run_time])
+        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+                         self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
         return loss
 
 
 class ObjectiveTcnFeatureCombinedModel(object):
-    def __init__(self, signals, clinical_information, static_information, x_train, x_val,
-                 feature_name, features_to_use, add_static_data, out_file, num_static_features):
-        self.signals = signals
-        self.clinical_information = clinical_information
-        self.static_information = static_information
+    def __init__(self, trial, x_train, x_test, x_train_processed, x_test_processed, y_train_processed,
+                 y_test_processed, rec_ids_train_inner, rec_ids_test_inner, rec_ids_train_outer, rec_ids_test_outer,
+                 pos_weight, feature_name, num_sub_sequences, features_to_use, features_to_use_static, out_file,
+                 outer_fold, inner_fold):
         self.x_train = x_train
-        self.x_val = x_val
+        self.x_test = x_test
+        self.x_train_processed = x_train_processed
+        self.x_test_processed = x_test_processed
+        self.y_train_processed = y_train_processed
+        self.y_test_processed = y_test_processed
+        self.rec_ids_train_inner = rec_ids_train_inner
+        self.rec_ids_test_inner = rec_ids_test_inner
+        self.rec_ids_train_outer = rec_ids_train_outer
+        self.rec_ids_test_outer = rec_ids_test_outer
+        self.pos_weight = pos_weight
         self.feature_name = feature_name
+        self.num_sub_sequences = num_sub_sequences
         self.features_to_use = features_to_use
-        self.add_static_data = add_static_data
+        self.features_to_use_static = features_to_use_static
         self.out_file = out_file
-        self.num_static_features = num_static_features
+        self.num_static_features = len(self.features_to_use_static)
+        self.outer_fold = outer_fold
+        self.inner_fold = inner_fold
+
+        self.loss = self.calculate_loss(trial)
 
     # Build a model by implementing define-by-run design from Optuna
     def build_model_custom(self, trial, hidden_dim, params):
@@ -3993,30 +3836,39 @@ class ObjectiveTcnFeatureCombinedModel(object):
 
         return nn.Sequential(*layers), params
 
-    def __call__(self, trial):
+    def calculate_loss(self, trial):
         params = {
-            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
             'num_hidden_units_per_layer': trial.suggest_int('num_hidden_units_per_layer', 5, 15, 1),
-            'weight_decay': trial.suggest_loguniform('weight_decay', 1e-6, 1e-1),
             'kernel_size': trial.suggest_int('kernel_size', 3, 9, 2),
-            'num_epochs': 10,
+            'num_epochs': 6,
             'drop_out': trial.suggest_uniform('drop_out', 0.1, 0.5),
             'batch_size': trial.suggest_int('batch_size', 10, 60, 10),
             'hidden_dim_static': trial.suggest_int('hidden_dim_static', 15, 25, 1),
             'feature_name': self.feature_name
         }
 
+        print(f'Params: {params}')
+
+        train_loader_list = generate_dataloader(self.x_train, self.x_train_processed, self.y_train_processed,
+                                                self.features_to_use, self.features_to_use_static,
+                                                self.rec_ids_train_inner, FLAGS.reduced_seq_length,
+                                                FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                params['batch_size'], test_phase=False)
+
+        test_loader_list, rec_ids_list = generate_dataloader(self.x_test, self.x_test_processed, self.y_test_processed,
+                                                             self.features_to_use, self.features_to_use_static,
+                                                             self.rec_ids_test_inner, FLAGS.reduced_seq_length,
+                                                             FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                             params['batch_size'], test_phase=True)
+
         n_classes = 1
         input_channels = len(self.features_to_use)
         input_dim_static = self.num_static_features
-        reduced_sequence_length = 50
-        sub_sequence_length = 10
-        # The num_sub_sequences variable is the number of sub_sequences necessary to complete an entire sequence
-        num_sub_sequences = int(reduced_sequence_length / sub_sequence_length)
         device = 'cpu'
 
         params['num_levels'] = get_num_levels_based_on_receptive_field(kernel_size=params['kernel_size'],
-                                                                       receptive_field=sub_sequence_length,
+                                                                       receptive_field=FLAGS.sub_seq_length,
                                                                        dilation_exponential_base=2)
 
         channel_sizes = [params['num_hidden_units_per_layer']] * params['num_levels']
@@ -4037,21 +3889,18 @@ class ObjectiveTcnFeatureCombinedModel(object):
 
         # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
         # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
-        pos_weight = torch.Tensor([((89 + 68) / 23)])
+        pos_weight = torch.Tensor([self.pos_weight])
 
         loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-        optimizer = optim.Adam(model_tcn_combined.parameters(), lr=params['learning_rate'],
-                               weight_decay=params['weight_decay'])
+        optimizer = optim.Adam(model_tcn_combined.parameters(), lr=params['learning_rate'])
 
         opt_tcn = OptimizationTCNFeatureSequenceCombined(model=model_tcn_combined, loss_fn=loss_fn, optimizer=optimizer,
-                                                         num_sub_sequences=num_sub_sequences, device=device)
+                                                         num_sub_sequences=self.num_sub_sequences, device=device)
 
         # Keep track of evals
         start = timer()
-        loss, params = opt_tcn.train(trial, self.signals, self.clinical_information, self.static_information,
-                                     self.x_train, self.x_val, self.features_to_use, params,
-                                     feature_name=params['feature_name'], add_static_data=self.add_static_data,
+        loss, params = opt_tcn.train(trial, train_loader_list, test_loader_list, features_to_use, params,
                                      n_epochs=params['num_epochs'])
 
         run_time = timer() - start
@@ -4059,111 +3908,47 @@ class ObjectiveTcnFeatureCombinedModel(object):
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, run_time])
-        of_connection.close()
-
-        return loss
-
-
-class ObjectiveTcnFeatureModel(object):
-    def __init__(self, signals, clinical_information, static_information, x_train, x_val,
-                 feature_name, features_to_use, add_static_data, out_file, num_static_features):
-        self.signals = signals
-        self.clinical_information = clinical_information
-        self.static_information = static_information
-        self.x_train = x_train
-        self.x_val = x_val
-        self.feature_name = feature_name
-        self.features_to_use = features_to_use
-        self.add_static_data = add_static_data
-        self.out_file = out_file
-        self.num_static_features = num_static_features
-
-    def __call__(self, trial):
-        params = {
-            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
-            'num_hidden_units_per_layer': trial.suggest_int('num_hidden_units_per_layer', 5, 15, 1),
-            'weight_decay': trial.suggest_loguniform('weight_decay', 1e-6, 1e-1),
-            'kernel_size': trial.suggest_int('kernel_size', 3, 9, 2),
-            'num_epochs': 10,
-            'drop_out': trial.suggest_uniform('drop_out', 0.1, 0.5),
-            'batch_size': trial.suggest_int('batch_size', 10, 60, 10),
-            'feature_name': self.feature_name
-        }
-
-        n_classes = 1
-        input_channels = len(self.features_to_use) + self.num_static_features
-        reduced_sequence_length = 50
-        sub_sequence_length = 10
-        # The num_sub_sequences variable is the number of sub_sequences necessary to complete an entire sequence
-        num_sub_sequences = int(reduced_sequence_length / sub_sequence_length)
-        device = 'cpu'
-
-        params['num_levels'] = get_num_levels_based_on_receptive_field(kernel_size=params['kernel_size'],
-                                                                       receptive_field=sub_sequence_length,
-                                                                       dilation_exponential_base=2)
-
-        channel_sizes = [params['num_hidden_units_per_layer']] * params['num_levels']
-
-        # For now we fixate the stride at 1
-        params['stride'] = 1
-
-        model_tcn = TCN(input_channels, n_classes, channel_sizes, stride=params['stride'],
-                        kernel_size=params['kernel_size'], dropout=params['drop_out'])
-        model_tcn.to(device)
-
-        # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
-        # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
-        pos_weight = torch.Tensor([((89 + 68) / 23)])
-
-        loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-
-        optimizer = optim.Adam(model_tcn.parameters(), lr=params['learning_rate'],
-                               weight_decay=params['weight_decay'])
-
-        opt_tcn = OptimizationTCNFeatureSequence(model=model_tcn, loss_fn=loss_fn, optimizer=optimizer,
-                                                 num_sub_sequences=num_sub_sequences, device=device)
-
-        # Keep track of evals
-        start = timer()
-        loss, params = opt_tcn.train(trial, self.signals, self.clinical_information, self.static_information,
-                                     self.x_train, self.x_val, self.features_to_use, params,
-                                     feature_name=params['feature_name'], add_static_data=self.add_static_data,
-                                     n_epochs=params['num_epochs'])
-
-        run_time = timer() - start
-
-        # Write to the csv file ('a' means append)
-        of_connection = open(self.out_file, 'a')
-        writer = csv.writer(of_connection)
-        writer.writerow([loss, params, run_time])
+        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+                         self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
         return loss
 
 
 class ObjectiveLSTMFeatureModel(object):
-    def __init__(self, signals, clinical_information, static_information, x_train, x_val,
-                 feature_name, features_to_use, add_static_data, out_file):
-        self.signals = signals
-        self.clinical_information = clinical_information
-        self.static_information = static_information
+    def __init__(self, trial, x_train, x_test, x_train_processed, x_test_processed, y_train_processed, y_test_processed,
+                 rec_ids_train_inner, rec_ids_test_inner, rec_ids_train_outer, rec_ids_test_outer, pos_weight,
+                 feature_name, num_sub_sequences, features_to_use, features_to_use_static, out_file,
+                 outer_fold, inner_fold):
         self.x_train = x_train
-        self.x_val = x_val
+        self.x_test = x_test
+        self.x_train_processed = x_train_processed
+        self.x_test_processed = x_test_processed
+        self.y_train_processed = y_train_processed
+        self.y_test_processed = y_test_processed
+        self.rec_ids_train_inner = rec_ids_train_inner
+        self.rec_ids_test_inner = rec_ids_test_inner
+        self.rec_ids_train_outer = rec_ids_train_outer
+        self.rec_ids_test_outer = rec_ids_test_outer
+        self.pos_weight = pos_weight
         self.feature_name = feature_name
+        self.num_sub_sequences = num_sub_sequences
         self.features_to_use = features_to_use
-        self.add_static_data = add_static_data
+        self.features_to_use_static = features_to_use_static
         self.out_file = out_file
+        self.outer_fold = outer_fold
+        self.inner_fold = inner_fold
 
-    def __call__(self, trial):
+        self.loss = self.calculate_loss(trial)
+
+    def calculate_loss(self, trial):
 
         params = {
-            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
             'layer_dim': trial.suggest_int('layer_dim', 1, 3),
             'hidden_dim': trial.suggest_int('hidden_dim', 5, 15, 1),
-            'weight_decay': trial.suggest_loguniform('weight_decay', 1e-6, 1e-1),
             'bidirectional': trial.suggest_categorical('bidirectional', [True, False]),
-            'num_epochs': 10,
+            'num_epochs': 3,
             'batch_size': trial.suggest_int('batch_size', 10, 60, 10),
             'feature_name': self.feature_name
         }
@@ -4174,12 +3959,20 @@ class ObjectiveLSTMFeatureModel(object):
         else:
             params['drop_out_lstm'] = trial.suggest_uniform('drop_out_lstm', 0.1, 0.5)
 
+        train_loader_list = generate_dataloader(self.x_train, self.x_train_processed, self.y_train_processed,
+                                                self.features_to_use, self.features_to_use_static, self.rec_ids_train_inner,
+                                                FLAGS.reduced_seq_length, FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                params['batch_size'], test_phase=False)
+
+        test_loader_list, rec_ids_list = generate_dataloader(self.x_test, self.x_test_processed, self.y_test_processed,
+                                                             self.features_to_use, self.features_to_use_static,
+                                                             self.rec_ids_test_inner, FLAGS.reduced_seq_length,
+                                                             FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                             params['batch_size'], test_phase=True)
+
         n_classes = 1
         input_channels = len(self.features_to_use)
-        reduced_sequence_length = 50
-        sub_sequence_length = 10
         # The num_sub_sequences variable is the number of sub_sequences necessary to complete an entire sequence
-        num_sub_sequences = int(reduced_sequence_length / sub_sequence_length)
         device = 'cpu'
 
         model_lstm_feature_stateful = LSTMStatefulClassificationFeatureSequence(input_size=input_channels,
@@ -4194,35 +3987,31 @@ class ObjectiveLSTMFeatureModel(object):
 
         # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
         # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
-        pos_weight = torch.Tensor([((89 + 68) / 23)])
+        pos_weight = torch.Tensor([self.pos_weight])
 
         loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
         optimizer = optim.Adam(model_lstm_feature_stateful.parameters(),
-                               lr=params['learning_rate'],
-                               weight_decay=params['weight_decay'])
+                               lr=params['learning_rate'])
 
         opt_model_lstm_stateful_feature = OptimizationStatefulFeatureSequenceLSTM(model=model_lstm_feature_stateful,
                                                                                   loss_fn=loss_fn,
                                                                                   optimizer=optimizer,
-                                                                                  num_sub_sequences=num_sub_sequences,
+                                                                                  num_sub_sequences=self.num_sub_sequences,
                                                                                   device=device)
 
         start = timer()
 
-        loss, params = opt_model_lstm_stateful_feature.train(trial, self.signals, self.clinical_information,
-                                                             self.static_information, self.x_train,
-                                                             self.x_val, self.features_to_use, num_sub_sequences,
-                                                             params, params['feature_name'],
-                                                             add_static_data=self.add_static_data,
-                                                             n_epochs=params['num_epochs'])
+        loss, params = opt_model_lstm_stateful_feature.train(trial, train_loader_list, test_loader_list,
+                                                             params, n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, run_time])
+        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+                         self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
         return loss
@@ -4320,9 +4109,323 @@ def main(model_name: str, feature_name: str, study, features_to_use: List[str],
                     f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_{current_date_and_time}.pkl')
 
 
+class ObjectiveTcnFeatureModel(object):
+    def __init__(self, trial, x_train, x_test, x_train_processed, x_test_processed, y_train_processed,
+                 y_test_processed, rec_ids_train_inner, rec_ids_test_inner, rec_ids_train_outer, rec_ids_test_outer,
+                 pos_weight, feature_name, num_sub_sequences, features_to_use, features_to_use_static, add_static_data,
+                 out_file, outer_fold, inner_fold):
+        self.x_train = x_train
+        self.x_test = x_test
+        self.x_train_processed = x_train_processed
+        self.x_test_processed = x_test_processed
+        self.y_train_processed = y_train_processed
+        self.y_test_processed = y_test_processed
+        self.rec_ids_train_inner = rec_ids_train_inner # unique rec ids of x train inner loop
+        self.rec_ids_test_inner = rec_ids_test_inner # unique rec ids of x test inner loop
+        self.rec_ids_train_outer = rec_ids_train_outer # unique rec ids of x train outer loop
+        self.rec_ids_test_outer = rec_ids_test_outer # unique rec ids of x test outer loop
+        self.pos_weight = pos_weight
+        self.feature_name = feature_name
+        self.num_sub_sequences = num_sub_sequences
+        self.features_to_use = features_to_use
+        self.features_to_use_static = features_to_use_static
+        self.add_static_data = add_static_data
+        self.out_file = out_file
+        self.outer_fold = outer_fold
+        self.inner_fold = inner_fold
+
+        self.loss = self.calculate_loss(trial)
+
+    def calculate_loss(self, trial):
+        params = {
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
+            'num_hidden_units_per_layer': trial.suggest_int('num_hidden_units_per_layer', 5, 15, 1),
+            'kernel_size': trial.suggest_int('kernel_size', 3, 9, 2),
+            'num_epochs': 3,
+            'drop_out': trial.suggest_uniform('drop_out', 0.1, 0.5),
+            'batch_size': trial.suggest_int('batch_size', 10, 60, 10),
+            'feature_name': self.feature_name
+        }
+        print(f'Params: {params}')
+
+        train_loader_list = generate_dataloader(self.x_train, self.x_train_processed, self.y_train_processed,
+                                                self.features_to_use, self.features_to_use_static,
+                                                self.rec_ids_train_inner, FLAGS.reduced_seq_length,
+                                                FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                params['batch_size'], test_phase=False)
+
+        test_loader_list, rec_ids_list = generate_dataloader(self.x_test, self.x_test_processed, self.y_test_processed,
+                                                             self.features_to_use, self.features_to_use_static,
+                                                             self.rec_ids_test_inner, FLAGS.reduced_seq_length,
+                                                             FLAGS.sub_seq_length, self.num_sub_sequences,
+                                                             params['batch_size'], test_phase=True)
+
+        n_classes = 1
+        input_channels = len(self.features_to_use)
+        device = 'cpu'
+
+        params['num_levels'] = get_num_levels_based_on_receptive_field(kernel_size=params['kernel_size'],
+                                                                       receptive_field=FLAGS.sub_seq_length,
+                                                                       dilation_exponential_base=2)
+
+        channel_sizes = [params['num_hidden_units_per_layer']] * params['num_levels']
+
+        # For now we fixate the stride at 1
+        params['stride'] = 1
+
+        model_tcn = TCN(input_channels, n_classes, channel_sizes, stride=params['stride'],
+                        kernel_size=params['kernel_size'], dropout=params['drop_out'])
+        model_tcn.to(device)
+
+        # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
+        # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
+        pos_weight = torch.Tensor([self.pos_weight])
+
+        loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+
+        optimizer = optim.Adam(model_tcn.parameters(), lr=params['learning_rate'])
+
+        opt_tcn = OptimizationTCNFeatureSequence(model=model_tcn, loss_fn=loss_fn, optimizer=optimizer,
+                                                 num_sub_sequences=self.num_sub_sequences, device=device)
+
+        # Keep track of evals
+        start = timer()
+
+        loss, params = opt_tcn.train(trial, train_loader_list, test_loader_list, params, n_epochs=params['num_epochs'])
+
+        run_time = timer() - start
+
+        # Write to the csv file ('a' means append)
+        of_connection = open(self.out_file, 'a')
+        writer = csv.writer(of_connection)
+        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+                         self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
+        of_connection.close()
+
+        return loss
+
+
+def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_static_outer_fold, rec_ids_test_outer,
+                       out_file, outer_fold_i, add_static_data, model_name, feature_name):
+    groups = np.array(X_train_outer_fold[c.REC_ID_NAME])
+    rec_ids_x_train_outer_unique = list(X_train_outer_fold[c.REC_ID_NAME].unique())
+    loss_scores = []
+
+    skf_inner_groups = StratifiedGroupKFold(n_splits=3, random_state=0, shuffle=True)
+    for inner_fold_j, (train_index_inner, test_index_inner) in enumerate(skf_inner_groups.split(X_train_outer_fold,
+                                                                                                y_train_outer_fold,
+                                                                                                groups)):
+
+
+        print(f"Inner fold {inner_fold_j}")
+        #unique_recids_train_inner_fold = np.unique(groups[train_index_inner])
+        #unique_recids_test_inner_fold = np.unique(groups[test_index_inner])
+
+        X_train_signal_inner_fold = X_train_outer_fold.iloc[train_index_inner].copy().reset_index(drop=True)
+        X_test_signal_inner_fold = X_train_outer_fold.iloc[test_index_inner].copy().reset_index(drop=True)
+        y_train_inner_fold = y_train_outer_fold.iloc[train_index_inner].copy().reset_index(drop=True)
+        y_test_inner_fold = y_train_outer_fold.iloc[test_index_inner].copy().reset_index(drop=True)
+
+        pos_cases = y_train_inner_fold['premature'].value_counts()[1]
+        neg_cases = y_train_inner_fold['premature'].value_counts()[0]
+        pos_weight = neg_cases/pos_cases
+        print(f'pos weight: {pos_weight}')
+
+        # We keep the rec ids order to later on merge the static data correctly
+        rec_ids_x_train_inner_signal = list(X_train_signal_inner_fold[c.REC_ID_NAME])
+        rec_ids_x_test_inner_signal = list(X_test_signal_inner_fold[c.REC_ID_NAME])
+
+        # We keep the rec ids order to later on merge the static data correctly
+        rec_ids_x_train_inner_unique = list(X_train_signal_inner_fold[c.REC_ID_NAME].unique())
+        rec_ids_x_test_inner_unique = list(X_test_signal_inner_fold[c.REC_ID_NAME].unique())
+
+        # The number of sub-sequences needed to make up an original sequence
+        num_sub_sequences_fixed = int(FLAGS.reduced_seq_length / FLAGS.sub_seq_length)
+
+        X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed, \
+        y_train_inner_fold_processed, y_test_inner_fold_processed = preprocess_signal_data(X_train_signal_inner_fold,
+                                                                                           X_test_signal_inner_fold,
+                                                                                           y_train_inner_fold,
+                                                                                           y_test_inner_fold,
+                                                                                           features_to_use)
+
+        if FLAGS.add_static_data:
+            X_train_static_inner_fold = X_train_static_outer_fold.loc[
+                    X_train_static_outer_fold[c.REC_ID_NAME].isin(rec_ids_x_train_inner_unique)].copy().reset_index(drop=True)
+            X_test_static_inner_fold = X_train_static_outer_fold.loc[
+                    X_train_static_outer_fold[c.REC_ID_NAME].isin(rec_ids_x_test_inner_unique)].copy().reset_index(drop=True)
+
+            X_train_combined_inner_fold, X_test_combined_inner_fold, X_train_combined_processed, \
+            X_test_combined_processed, selected_columns_train_static = add_static_data_to_signal_data(X_train_static_inner_fold,
+                                                                                                      X_test_static_inner_fold,
+                                                                                                      X_train_signal_inner_fold,
+                                                                                                      X_test_signal_inner_fold,
+                                                                                                      X_train_signal_inner_fold_processed,
+                                                                                                      X_test_signal_inner_fold_processed,
+                                                                                                      rec_ids_x_train_inner_signal,
+                                                                                                      rec_ids_x_test_inner_signal,
+                                                                                                      features_to_use,
+                                                                                                      threshold_correlation=0.85)
+
+        if model_name == 'tcn' and not add_static_data:
+            features_to_use_static = []
+            loss = ObjectiveTcnFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
+                                            X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
+                                            y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                            rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                            rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
+                                            feature_name,
+                                            num_sub_sequences_fixed, features_to_use, features_to_use_static,
+                                            add_static_data, out_file, outer_fold_i, inner_fold_j).loss
+
+        if model_name == 'tcn' and FLAGS.add_static_data and not FLAGS.use_copies_for_static_data:
+            loss = ObjectiveTcnFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
+                                                    X_train_combined_processed, X_test_combined_processed,
+                                                    y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                                    rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                                    rec_ids_x_train_outer_unique, rec_ids_test_outer,
+                                                    pos_weight,
+                                                    feature_name, num_sub_sequences_fixed, features_to_use,
+                                                    selected_columns_train_static, out_file,
+                                                    outer_fold_i, inner_fold_j).loss
+
+        elif model_name == 'tcn' and FLAGS.add_static_data and FLAGS.use_copies_for_static_data:
+            loss = ObjectiveTcnFeatureCombinedModelWithCopies(trial, X_train_combined_inner_fold,
+                                                              X_test_combined_inner_fold, X_train_combined_processed,
+                                                              X_test_combined_processed, y_train_inner_fold_processed,
+                                                              y_test_inner_fold_processed,
+                                                              rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                                              rec_ids_x_train_outer_unique, rec_ids_test_outer,
+                                                              pos_weight,
+                                                              feature_name, num_sub_sequences_fixed, features_to_use,
+                                                              selected_columns_train_static, out_file,
+                                                              outer_fold_i, inner_fold_j).loss
+
+        elif model_name == 'lstm' and not FLAGS.add_static_data:
+            features_to_use_static = []
+
+            loss = ObjectiveLSTMFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
+                                             X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
+                                             y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                             rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                             rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
+                                             feature_name,
+                                             num_sub_sequences_fixed, features_to_use, features_to_use_static,
+                                             out_file, outer_fold_i, inner_fold_j).loss
+
+        elif model_name == 'lstm' and FLAGS.add_static_data:
+            loss = ObjectiveLSTMFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
+                                                     X_train_combined_processed, X_test_combined_processed,
+                                                     y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                                     rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                                     rec_ids_x_train_outer_unique, rec_ids_test_outer,
+                                                     pos_weight,
+                                                     feature_name, num_sub_sequences_fixed, features_to_use,
+                                                     selected_columns_train_static, out_file,
+                                                     outer_fold_i, inner_fold_j).loss
+
+        loss_scores.append(loss)
+
+    print(f'Inner folds loss scores: {loss_scores}')
+
+    return np.mean(loss_scores)
+
+
+def objective_cv_outer(trial):
+    # Load dataset from hard disk, this is the filtered signal data
+    df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
+
+    df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
+
+    df_features, df_label = basic_preprocessing_signal_data(df_signals_new, df_clinical_information,
+                                                            FLAGS.reduced_seq_length, features_to_use,
+                                                            FLAGS.feature_name, fs)
+
+    df_features = convert_columns_to_numeric(df_features, [c.REC_ID_NAME])
+    df_features[c.REC_ID_NAME] = df_features[c.REC_ID_NAME].astype(np.int64)
+
+    groups = np.array(df_features[c.REC_ID_NAME])
+
+    if FLAGS.add_static_data:
+        df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
+
+    loss_scores_outer = []
+
+    skf_outer_groups = StratifiedGroupKFold(n_splits=5, random_state=0, shuffle=True)
+    for outer_fold_i, (train_index_outer, test_index_outer) in enumerate(skf_outer_groups.split(df_features, df_label,
+                                                                                                groups)):
+
+        X_train_signal_outer_fold = df_features.iloc[train_index_outer].copy().reset_index(drop=True)
+        X_test_signal_outer_fold = df_features.iloc[test_index_outer].copy().reset_index(drop=True)
+        y_train_outer_fold = df_label.iloc[train_index_outer].copy().reset_index(drop=True)
+        y_test_outer_fold = df_label.iloc[test_index_outer].copy().reset_index(drop=True)
+
+        # We keep the rec ids order to later on merge the static data correctly
+        rec_ids_x_train_outer_unique = list(X_train_signal_outer_fold[c.REC_ID_NAME].unique())
+        rec_ids_x_test_outer_unique = list(X_test_signal_outer_fold[c.REC_ID_NAME].unique())
+
+        if FLAGS.add_static_data:
+            X_train_static_outer_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].isin(rec_ids_x_train_outer_unique)].copy().reset_index(drop=True)
+            X_test_static_outer_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].isin(rec_ids_x_test_outer_unique)].copy().reset_index(drop=True)
+
+            assert all(x == y for x, y in zip(X_train_signal_outer_fold[c.REC_ID_NAME].unique(),
+                                              X_train_static_outer_fold[c.REC_ID_NAME].unique())), \
+                "Rec ids in X_train_signal and X_train_static must be in the exact same order!"
+
+            assert all(x == y for x, y in zip(X_test_signal_outer_fold[c.REC_ID_NAME].unique(),
+                                              X_test_static_outer_fold[c.REC_ID_NAME].unique())), \
+                "Rec ids in X_test_signal and X_test_static must be in the exact same order!"
+
+            assert set(X_train_signal_outer_fold[c.REC_ID_NAME]) == set(X_train_static_outer_fold[c.REC_ID_NAME]), \
+                "Rec ids in train signals and train static data are not the same!"
+
+            assert set(X_test_signal_outer_fold[c.REC_ID_NAME]) == set(X_test_static_outer_fold[c.REC_ID_NAME]), \
+                "Rec ids in test signals and test static data are not the same!"
+
+        else:
+            X_train_static_outer_fold = None
+
+        loss_scores = objective_cv_inner(trial, X_train_signal_outer_fold, y_train_outer_fold,
+                                         X_train_static_outer_fold, rec_ids_x_test_outer_unique, out_file, outer_fold_i,
+                                         FLAGS.add_static_data, FLAGS.model, FLAGS.feature_name)
+
+        loss_scores_outer.append(loss_scores)
+    print(f'Outer folds loss scores: {loss_scores_outer}')
+
+    return np.mean(loss_scores_outer)
+
+
+def main2(model_name: str, feature_name: str, study, add_static_data: bool, copies: bool,
+          output_path: str, n_trials: int):
+
+    # File to save results
+    of_connection = open(out_file, 'w')
+    writer = csv.writer(of_connection)
+
+    # Write the headers to the file
+    writer.writerow(['loss', 'params', 'outer_fold', 'inner_fold', 'rec_ids_train_outer', 'rec_ids_test_outer',
+                     'rec_ids_train_inner', 'rec_ids_test_inner', 'train_time'])
+    of_connection.close()
+
+    study.optimize(objective_cv_outer, n_trials=n_trials)
+    print(study.best_trial)
+
+    if add_static_data and not copies:
+        joblib.dump(study,
+                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_combined_{current_date_and_time}.pkl')
+
+    if add_static_data and copies:
+        joblib.dump(study,
+                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_combined_copies_{current_date_and_time}.pkl')
+
+    if not add_static_data:
+        joblib.dump(study, f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_{current_date_and_time}.pkl')
+
+
 if __name__ == "__main__":
     # EHG data to use for modelling
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
+    fs = 20
     output_path = os.path.join(file_paths['output_path'], 'model/hyper_parameter_opt/')
 
     if not os.path.isdir(output_path):
@@ -4337,14 +4440,23 @@ if __name__ == "__main__":
                                                  'ObjectiveLSTMFeatureModel classes. The output path where the results '
                                                  'will be saved needs to be defined in this main function.')
 
-    parser.add_argument('--model', type=str, required=True,
-                        help="Select what model to use: 'lstm' or 'tcn'",
+    parser.add_argument('--model', type=str, required=True, help="Select what model to use: 'lstm' or 'tcn'",
                         choices=['tcn', 'lstm'])
 
     parser.add_argument('--feature_name', type=str, required=True,
                         help="Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or "
-                             "'median_frequency'",
-                        choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
+                             "'median_frequency'", choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
+
+    parser.add_argument('--reduced_seq_length', type=int, required=True, default=50,
+                        help="The time window length of which you want to calculate feature_name on each time step."
+                             "For example, if reduced_seq_length is 50 and feature_name is sample entropy, then you'll "
+                             "end up with 50 values of the sample entropy which are calculated over non-overlapping "
+                             "time windows from df_signals_new.")
+    parser.add_argument('--sub_seq_length', type=int, required=True, default=10,
+                        help="The number of time steps you want to use to split reduced_seq_length into. For example, "
+                             "if reduced_seq_length is 50 and sub_seq_length is 10, then you'll have 5 sub-sequences "
+                             "that make up the total reduced_seq_length. A prediction will be made over each "
+                             "sub-sequence")
 
     # Make a dependency such that it is required to have either the --add_static_data or the --no_static_data flag
     parser.add_argument('--add_static_data', action='store_true',
@@ -4401,5 +4513,16 @@ if __name__ == "__main__":
     if not FLAGS.new_study:
         study = joblib.load(f"{output_path}/{FLAGS.study_name}")
 
-    main(FLAGS.model, FLAGS.feature_name, study, features_to_use, FLAGS.add_static_data,
-         FLAGS.use_copies_for_static_data, output_path, FLAGS.n_trials)
+    current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
+
+    if FLAGS.add_static_data:
+        if not FLAGS.use_copies_for_static_data:
+            out_file = f'{output_path}/{FLAGS.model}_data_trials_feature_{FLAGS.feature_name}_combined_{current_date_and_time}.csv'
+        if FLAGS.use_copies_for_static_data:
+            out_file = f'{output_path}/{FLAGS.model}_data_trials_feature_{FLAGS.feature_name}_combined_copies_{current_date_and_time}.csv'
+
+    if not FLAGS.add_static_data:
+        out_file = f'{output_path}/{FLAGS.model}_data_trials_feature_{FLAGS.feature_name}_{current_date_and_time}.csv'
+
+    main2(FLAGS.model, FLAGS.feature_name, study, FLAGS.add_static_data,
+          FLAGS.use_copies_for_static_data, output_path, FLAGS.n_trials)
