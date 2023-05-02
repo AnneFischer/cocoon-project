@@ -50,6 +50,20 @@ Usage:
   --feature_name {sample_entropy,peak_frequency,median_frequency}
                         Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or 'median_frequency'
                         
+  --hyperoptimization_file_name   
+                        Name of the file with the results of the hyperoptimization run. The best params for each model are already 
+                        provided in the `best_params.json` file.
+                        
+  --n_folds             Number of outer folds used. Default is 5.
+  
+  --reduced_seq_length  The time window length of which you want to calculate feature_name on each time step. For example, if 
+                        reduced_seq_length is 50 and feature_name is sample entropy, then you'll end up with 50 values of the 
+                        sample entropy which are calculated over non-overlapping time windows from df_signals_new. Default is 50.
+                        
+  --sub_seq_length      The number of time steps you want to use to split reduced_seq_length into. For example, if 
+                        reduced_seq_length is 50 and sub_seq_length is 10, then you'll have 5 sub-sequences that make up the 
+                        total reduced_seq_length. A prediction will be made over each sub-sequence. Default is 10.
+                        
   --add_static_data     Add static clinical data to the model. Use either the --add_static_data or the --no_static_data flag
   
   --no_static_data      Use only the EHG data for modeling. Use either the --add_static_data or the --no_static_data flag
@@ -66,12 +80,15 @@ Usage:
                         --no_copies_for_static_data flag. This flag or the --use_copies_for_static_data flag are only required
                         if the --add_static_data flag is used.
                         
+  --baseline            Calculate performance of logistic regression baseline on static data.
+  --no_baseline         Run normal evaluation. (This would be the default option)
+                        
 ```
 
 Example of how to evaluate the final model for TCN with peak frequency as method of data reduction, no static data added in the command line:
 
 ```python
-python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data
+python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --hyperoptimization_file_name 'lstm_data_trials_feature_sample_entropy_combined_2023-02-22_13-52.csv' --n_folds 5 --reduced_seq_length 50 --sub_seq_length 10 --no_static_data --no_baseline
 ```
 
 ## Step 3 (optional): Re-run hyperoptimization
