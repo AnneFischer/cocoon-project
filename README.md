@@ -88,7 +88,7 @@ Usage:
 Example of how to evaluate the final model for TCN with peak frequency as method of data reduction, no static data added in the command line:
 
 ```python
-python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --hyperoptimization_file_name 'lstm_data_trials_feature_sample_entropy_combined_2023-02-22_13-52.csv' --n_folds 5 --reduced_seq_length 50 --sub_seq_length 10 --no_static_data --no_baseline
+python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --hyperoptimization_file_name 'tcn_data_trials_feature_peak_frequency_2023-02-21_16-22.csv' --n_folds 5 --reduced_seq_length 50 --sub_seq_length 10 --no_static_data --no_baseline
 ```
 
 ## Step 3 (optional): Re-run hyperoptimization
