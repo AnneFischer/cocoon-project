@@ -7,11 +7,11 @@ from src_pre_term_database.modeling import TCN, LSTMStatefulClassificationFeatur
     LSTMCombinedModel, TCNCombinedModel, TCNCombinedModelCopies
 from src_pre_term_database.load_dataset import build_clinical_information_dataframe, build_demographics_dataframe
 from src_pre_term_database.data_processing_and_feature_engineering import train_val_test_split, \
-    generate_feature_data_loaders, preprocess_static_data, add_static_data_to_signal_data, \
+    preprocess_static_data, add_static_data_to_signal_data, \
     basic_preprocessing_static_data, basic_preprocessing_signal_data, generate_dataloader, preprocess_signal_data, \
     feature_label_split
 from src_pre_term_database.utils import read_settings
-from src_pre_term_database.final_train import get_best_params
+from src_pre_term_database.final_train import get_best_params, get_best_params_comb_model
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -23,8 +23,8 @@ from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_sco
 import math
 import argparse
 import os
-from sklearn.model_selection import StratifiedGroupKFold
 import datetime
+from sklearn.linear_model import LogisticRegression
 
 
 settings_path = os.path.abspath("references/settings")
@@ -33,18 +33,88 @@ file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
 
 optional_model_dict = {
-    "lstm_sample_entropy_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=29, out_features=12, bias=True), nn.ReLU())},
-    "lstm_peak_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=29, out_features=15, bias=True), nn.ReLU())},
-    "lstm_median_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=27, out_features=17, bias=True), nn.ReLU())},
-    "tcn_sample_entropy_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=39, out_features=20, bias=True), nn.ReLU())},
-    "tcn_peak_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=26, out_features=17, bias=True), nn.ReLU())},
-    "tcn_median_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=26, out_features=13, bias=True), nn.ReLU())}
+    "lstm_sample_entropy_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(30, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(22, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(21, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=21, out_features=13, bias=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(23, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(21, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=21, out_features=20, bias=True), nn.ReLU())},
+
+    "lstm_peak_frequency_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(22, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=28, out_features=17, bias=True), nn.ReLU())},
+
+    "lstm_median_frequency_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=31, out_features=20, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=35, out_features=16, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=15, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=28, out_features=13, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=28, out_features=18, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=31, out_features=14, bias=True), nn.ReLU())},
+
+
+    "tcn_peak_frequency_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=15, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=32, out_features=15, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=29, out_features=14, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=14, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=29, out_features=14, bias=True), nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_0": {'optional_model': nn.Sequential(nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=25, out_features=15, bias=True), nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_2":
+            {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_3": {'optional_model': nn.Sequential(nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_4": {'optional_model': nn.Sequential(nn.ReLU())}
 }
 
 
@@ -142,6 +212,8 @@ def evaluate_tcn_feature_sequence(x_test, x_test_processed, y_test_processed, nu
 
     model_tcn.to(device)
 
+    num_trainable_params = sum(p.numel() for p in model_tcn.parameters() if p.requires_grad)
+
     # https://discuss.pytorch.org/t/unclear-about-weighted-bce-loss/21486
     # https://discuss.pytorch.org/t/bcewithlogitsloss-and-class-weights/88837
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([pos_weight]))
@@ -177,7 +249,7 @@ def evaluate_tcn_feature_sequence(x_test, x_test_processed, y_test_processed, nu
     results_dict = calculate_auc_ap_second_largest_values(df_interval_tcn_preds, df_interval_tcn_probs,
                                                           test_labels, results_dict)
 
-    return all_test_preds, all_test_probs, rec_ids_test, results_dict
+    return all_test_preds, all_test_probs, rec_ids_test, results_dict, df_interval_tcn_probs, num_trainable_params
 
 
 def evaluate_lstm_feature_sequence(x_test, x_test_processed, y_test_processed, num_sub_sequences, rec_ids_test_unique,
@@ -215,6 +287,8 @@ def evaluate_lstm_feature_sequence(x_test, x_test_processed, y_test_processed, n
 
     model_lstm.to(device)
 
+    num_trainable_params = sum(p.numel() for p in model_lstm.parameters() if p.requires_grad)
+
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([pos_weight]))
 
     optimizer = optim.Adam(model_lstm.parameters(), lr=best_params['learning_rate'])
@@ -247,7 +321,7 @@ def evaluate_lstm_feature_sequence(x_test, x_test_processed, y_test_processed, n
     results_dict = calculate_auc_ap_second_largest_values(df_interval_lstm_preds, df_interval_lstm_probs,
                                                           test_labels, results_dict)
 
-    return all_test_preds, all_test_probs, rec_ids_test, results_dict
+    return all_test_preds, all_test_probs, rec_ids_test, results_dict, df_interval_lstm_probs, num_trainable_params
 
 
 def create_interval_matrix(all_test_results: List, rec_ids_test: List[int], num_sub_sequences: int) -> pd.DataFrame:
@@ -318,6 +392,62 @@ def create_interval_matrix(all_test_results: List, rec_ids_test: List[int], num_
     return df_interval_matrix
 
 
+def cross_validation_evaluation_baseline_model():
+    df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
+    df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
+
+    auc_scores = []
+    ap_scores = []
+
+    for outer_fold_i in range(FLAGS.n_folds):
+        _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params_comb_model(FLAGS.hyperoptimization_file_name,
+                                                                                          outer_fold_i=outer_fold_i)
+
+        print(f'fold: {outer_fold_i}')
+
+        X_train_static_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].
+            isin(rec_ids_train_outer_fold)].copy().reset_index(drop=True)
+        X_test_static_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].
+            isin(rec_ids_test_outer_fold)].copy().reset_index(drop=True)
+
+        pos_cases = X_train_static_fold['premature'].value_counts()[1]
+        neg_cases = X_train_static_fold['premature'].value_counts()[0]
+        pos_weight = neg_cases / pos_cases
+        print(f'pos weight: {pos_weight}')
+
+        x_arr_static_train, y_arr_static_train, selected_columns_train_static, rec_id_list_static_train = preprocess_static_data(
+            X_train_static_fold,
+            X_train_static_fold,
+            threshold_correlation=0.85)
+
+        num_static_features = len(selected_columns_train_static)
+        print(f'Num static features: {num_static_features}')
+
+        x_arr_static_test, y_arr_static_test, selected_columns_test_static, rec_id_list_static_test = preprocess_static_data(
+            X_train_static_fold,
+            X_test_static_fold,
+            threshold_correlation=0.85)
+
+        logreg = LogisticRegression(penalty='l2', C=1, class_weight={0: 1, 1: pos_weight})
+        logreg.fit(x_arr_static_train, y_arr_static_train)
+
+        print(
+            f'Average precision score: {average_precision_score(y_arr_static_test, logreg.predict_proba(x_arr_static_test)[:, 1])}')
+        print(f'AUC score: {roc_auc_score(y_arr_static_test, logreg.predict_proba(x_arr_static_test)[:, 1])}')
+
+        ap_score_fold = average_precision_score(y_arr_static_test, logreg.predict_proba(x_arr_static_test)[:, 1])
+        auc_score_fold = roc_auc_score(y_arr_static_test, logreg.predict_proba(x_arr_static_test)[:, 1])
+
+        ap_scores.append(ap_score_fold)
+        auc_scores.append(auc_score_fold)
+
+    print(f'Mean AP score: {np.mean(ap_scores)}')
+    print(f'Std AP score: {np.std(ap_scores)}')
+
+    print(f'Mean AUC score: {np.mean(auc_scores)}')
+    print(f'Std AUC score: {np.std(auc_scores)}')
+
+
 def cross_validation_evaluation(model_name):
     # Load dataset from hard disk
     # Original signal data
@@ -339,9 +469,15 @@ def cross_validation_evaluation(model_name):
 
     current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
 
+    df_interval_probs = pd.DataFrame()
+    num_trainable_params_list = []
+
     for outer_fold_i in range(FLAGS.n_folds):
         if FLAGS.add_static_data:
-            best_params_model_name_fold = f'{FLAGS.model}_{FLAGS.feature_name}_fold_{outer_fold_i}_with_static_data'
+            best_params_model_name_fold = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data_fold_{outer_fold_i}'
+
+            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params_comb_model(FLAGS.hyperoptimization_file_name,
+                                                                                              outer_fold_i=outer_fold_i)
 
         elif not FLAGS.add_static_data:
             best_params_model_name_fold = f'{FLAGS.model}_{FLAGS.feature_name}_fold_{outer_fold_i}'
@@ -366,7 +502,6 @@ def cross_validation_evaluation(model_name):
 
         df_train_outer_fold = df_total.loc[df_total[c.REC_ID_NAME].isin(rec_ids_train_outer_fold)].copy().reset_index(drop=True)
         df_test_outer_fold = df_total.loc[df_total[c.REC_ID_NAME].isin(rec_ids_test_outer_fold)].copy().reset_index(drop=True)
-
 
         X_train_signal_fold, y_train_fold = feature_label_split(df_train_outer_fold, 'premature')
         X_test_signal_fold, y_test_fold = feature_label_split(df_test_outer_fold, 'premature')
@@ -415,62 +550,46 @@ def cross_validation_evaluation(model_name):
         if model_name == 'tcn' and not FLAGS.add_static_data:
             features_to_use_static = []
 
-            all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_tcn_feature_sequence(X_test_signal_fold,
-                                                                                                       X_test_signal_fold_processed,
-                                                                                                       y_test_fold_processed,
-                                                                                                       num_sub_sequences_fixed,
-                                                                                                       rec_ids_test_outer_fold,
-                                                                                                       pos_weight,
-                                                                                                       best_params,
-                                                                                                       features_to_use,
-                                                                                                       features_to_use_static,
-                                                                                                       num_static_features=len(features_to_use_static),
-                                                                                                       output_path=out_path_model,
-                                                                                                       trained_model_file_name=trained_model_file_name)
+            all_test_preds, all_test_probs, rec_ids_test, results_dict, df_interval, \
+            num_trainable_params = evaluate_tcn_feature_sequence(X_test_signal_fold, X_test_signal_fold_processed,
+                                                                 y_test_fold_processed, num_sub_sequences_fixed,
+                                                                 rec_ids_test_outer_fold, pos_weight, best_params,
+                                                                 features_to_use, features_to_use_static,
+                                                                 num_static_features=len(features_to_use_static),
+                                                                 output_path=out_path_model,
+                                                                 trained_model_file_name=trained_model_file_name)
 
         elif model_name == 'tcn' and FLAGS.add_static_data:
-            all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_tcn_feature_sequence(X_test_combined_fold,
-                                                                                                       X_test_combined_processed,
-                                                                                                       y_test_fold_processed,
-                                                                                                       num_sub_sequences_fixed,
-                                                                                                       rec_ids_test_outer_fold,
-                                                                                                       pos_weight,
-                                                                                                       best_params,
-                                                                                                       features_to_use,
-                                                                                                       selected_columns_train_static,
-                                                                                                       num_static_features=len(selected_columns_train_static),
-                                                                                                       output_path=out_path_model,
-                                                                                                       trained_model_file_name=trained_model_file_name)
+            all_test_preds, all_test_probs, rec_ids_test, results_dict, df_interval, \
+            num_trainable_params = evaluate_tcn_feature_sequence(X_test_combined_fold, X_test_combined_processed,
+                                                                 y_test_fold_processed, num_sub_sequences_fixed,
+                                                                 rec_ids_test_outer_fold, pos_weight, best_params,
+                                                                 features_to_use, selected_columns_train_static,
+                                                                 num_static_features=len(selected_columns_train_static),
+                                                                 output_path=out_path_model,
+                                                                 trained_model_file_name=trained_model_file_name)
 
         elif model_name == 'lstm' and not FLAGS.add_static_data:
             features_to_use_static = []
 
-            all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_lstm_feature_sequence(X_test_signal_fold,
-                                                                                                        X_test_signal_fold_processed,
-                                                                                                        y_test_fold_processed,
-                                                                                                        num_sub_sequences_fixed,
-                                                                                                        rec_ids_test_outer_fold,
-                                                                                                        pos_weight,
-                                                                                                        best_params,
-                                                                                                        features_to_use,
-                                                                                                        features_to_use_static,
-                                                                                                        num_static_features=len(features_to_use_static),
-                                                                                                        output_path=out_path_model,
-                                                                                                        trained_model_file_name=trained_model_file_name)
+            all_test_preds, all_test_probs, rec_ids_test, results_dict, df_interval, \
+            num_trainable_params = evaluate_lstm_feature_sequence(X_test_signal_fold, X_test_signal_fold_processed,
+                                                                  y_test_fold_processed, num_sub_sequences_fixed,
+                                                                  rec_ids_test_outer_fold, pos_weight, best_params,
+                                                                  features_to_use, features_to_use_static,
+                                                                  num_static_features=len(features_to_use_static),
+                                                                  output_path=out_path_model,
+                                                                  trained_model_file_name=trained_model_file_name)
 
         elif model_name == 'lstm' and FLAGS.add_static_data:
-            all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_lstm_feature_sequence(X_test_combined_fold,
-                                                                                                        X_test_combined_processed,
-                                                                                                        y_test_fold_processed,
-                                                                                                        num_sub_sequences_fixed,
-                                                                                                        rec_ids_test_outer_fold,
-                                                                                                        pos_weight,
-                                                                                                        best_params,
-                                                                                                        features_to_use,
-                                                                                                        selected_columns_train_static,
-                                                                                                        num_static_features=len(selected_columns_train_static),
-                                                                                                        output_path=out_path_model,
-                                                                                                        trained_model_file_name=trained_model_file_name)
+            all_test_preds, all_test_probs, rec_ids_test, results_dict, df_interval, \
+            num_trainable_params = evaluate_lstm_feature_sequence(X_test_combined_fold, X_test_combined_processed,
+                                                                  y_test_fold_processed, num_sub_sequences_fixed,
+                                                                  rec_ids_test_outer_fold, pos_weight, best_params,
+                                                                  features_to_use, selected_columns_train_static,
+                                                                  num_static_features=len(selected_columns_train_static),
+                                                                  output_path=out_path_model,
+                                                                  trained_model_file_name=trained_model_file_name)
 
         results_dict.update({'model_file_name': trained_model_file_name})
         print(results_dict)
@@ -481,6 +600,17 @@ def cross_validation_evaluation(model_name):
 
         print(f'Results are saved at: {evaluation_results_path}/{best_params_model_name_fold}_results_{current_date_and_time}.csv')
         print(f'All test probs: {all_test_probs}')
+
+        num_trainable_params_list.append(num_trainable_params)
+
+        # Add outer fold as column
+        df_interval = pd.concat([df_interval, pd.DataFrame([outer_fold_i]*len(rec_ids_test_outer_fold))], axis=1)
+
+        df_interval_probs = pd.concat([df_interval_probs, df_interval], axis=0)
+    df_interval_probs.to_csv(f'{evaluation_results_path}/{best_params_model_name}_interval_predictions.csv')
+
+    print(f'Min number of trainable params over all folds: {np.min(num_trainable_params_list)}')
+    print(f'Max number of trainable params over all folds: {np.max(num_trainable_params_list)}')
 
     auc_mean_prob_list = []
     ap_mean_prob_list = []
@@ -647,6 +777,15 @@ if __name__ == "__main__":
                              "is used.")
     parser.set_defaults(use_copies_for_static_data=False)
 
+    # Make a dependency such that it is required to have either the --baseline or the --no_baseline flag
+    parser.add_argument('--baseline', action='store_true',
+                        required=('--no_baseline' not in sys.argv),
+                        help="Calculate performance of logistic regression baseline on static data")
+    parser.add_argument('--no_baseline', dest='baseline', action='store_false',
+                        required=('--baseline' not in sys.argv),
+                        help="Run normal evaluation.")
+    parser.set_defaults(add_static_data=True)
+
     FLAGS, unparsed = parser.parse_known_args()
     print(FLAGS)
 
@@ -659,4 +798,8 @@ if __name__ == "__main__":
     features_to_use = ['channel_1_filt_0.34_1_hz', 'channel_2_filt_0.34_1_hz', 'channel_3_filt_0.34_1_hz']
     fs = 20
 
-    cross_validation_evaluation(FLAGS.model)
+    if FLAGS.baseline:
+        cross_validation_evaluation_baseline_model()
+
+    else:
+        cross_validation_evaluation(FLAGS.model)

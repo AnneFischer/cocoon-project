@@ -12,7 +12,6 @@ from src_pre_term_database.utils import read_settings
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import StratifiedGroupKFold
 import numpy as np
 from typing import List, Dict
 import constants as c
@@ -28,18 +27,103 @@ file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
 
 optional_model_dict = {
-    "lstm_sample_entropy_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=29, out_features=12, bias=True), nn.ReLU())},
-    "lstm_peak_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=29, out_features=15, bias=True), nn.ReLU())},
-    "lstm_median_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=27, out_features=17, bias=True), nn.ReLU())},
-    "tcn_sample_entropy_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=39, out_features=20, bias=True), nn.ReLU())},
-    "tcn_peak_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=26, out_features=17, bias=True), nn.ReLU())},
-    "tcn_median_frequency_with_static_data":
-        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=26, out_features=13, bias=True), nn.ReLU())}
+    "lstm_sample_entropy_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(30, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(22, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(21, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=21, out_features=13, bias=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(23, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU())},
+    "lstm_sample_entropy_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(21, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=21, out_features=20, bias=True), nn.ReLU())},
+
+    "lstm_peak_frequency_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(22, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_peak_frequency_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=28, out_features=17, bias=True), nn.ReLU())},
+
+
+    "lstm_median_frequency_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True), nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU())},
+    "lstm_median_frequency_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=31, out_features=20, bias=True), nn.ReLU())},
+
+    "tcn_sample_entropy_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=35, out_features=16, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=15, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=28, out_features=13, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=28, out_features=18, bias=True), nn.ReLU())},
+    "tcn_sample_entropy_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=31, out_features=14, bias=True), nn.ReLU())},
+
+    "tcn_peak_frequency_with_static_data_fold_0":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=15, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=32, out_features=15, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_2":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=29, out_features=14, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_3":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=14, bias=True), nn.ReLU())},
+    "tcn_peak_frequency_with_static_data_fold_4":
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
+                                         nn.ReLU(), nn.Linear(in_features=29, out_features=14, bias=True), nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_0": {'optional_model': nn.Sequential(nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_1":
+        {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=25, out_features=15, bias=True), nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_2":
+            {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                            track_running_stats=True), nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_3": {'optional_model': nn.Sequential(nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_4": {'optional_model': nn.Sequential(nn.ReLU())}
 }
 
 
@@ -177,6 +261,7 @@ def cross_validation_final_train(model_name):
                                                             FLAGS.feature_name, fs)
 
     df_total = pd.concat([df_features, df_label], axis=1)
+    df_ground_truth = pd.concat([df_features[c.REC_ID_NAME], df_label], axis=1)
 
     # The number of sub-sequences needed to make up an original sequence
     num_sub_sequences_fixed = int(FLAGS.reduced_seq_length / FLAGS.sub_seq_length)
@@ -187,12 +272,15 @@ def cross_validation_final_train(model_name):
     for outer_fold_i in range(FLAGS.n_folds):
 
         if FLAGS.add_static_data:
-            best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data'
+            best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data_fold_{outer_fold_i}'
 
             best_params: dict = read_settings(settings_path, 'best_params')
             best_params = best_params[best_params_model_name]
             # If static data is added to the model, add the optional model part to the best_params dict
             best_params.update(optional_model_dict[best_params_model_name])
+
+            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params_comb_model(FLAGS.hyperoptimization_file_name,
+                                                                                              outer_fold_i=outer_fold_i)
 
         elif not FLAGS.add_static_data:
             best_params_model, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(FLAGS.hyperoptimization_file_name,
@@ -215,22 +303,23 @@ def cross_validation_final_train(model_name):
     # skf_outer_groups = StratifiedGroupKFold(n_splits=5, random_state=0, shuffle=True)
     # for fold_i, (train_index, test_index) in enumerate(skf_outer_groups.split(df_features, df_label, groups)):
 
-        #unique_train_rec_ids = np.unique(groups[train_index])
-        #unique_test_rec_ids = np.unique(groups[test_index])
         df_train_outer_fold = df_total.loc[df_total[c.REC_ID_NAME].isin(rec_ids_train_outer_fold)].copy().reset_index(drop=True)
         df_test_outer_fold = df_total.loc[df_total[c.REC_ID_NAME].isin(rec_ids_test_outer_fold)].copy().reset_index(drop=True)
-
 
         X_train_signal_fold, y_train_fold = feature_label_split(df_train_outer_fold, 'premature')
         X_test_signal_fold, y_test_fold = feature_label_split(df_test_outer_fold, 'premature')
 
-        # X_train_signal_fold = df_features.iloc[train_index].copy().reset_index(drop=True)
-        # X_test_signal_fold = df_features.iloc[test_index].copy().reset_index(drop=True)
-        # y_train_fold = df_label.iloc[train_index].copy().reset_index(drop=True)
-        # y_test_fold = df_label.iloc[test_index].copy().reset_index(drop=True)
-
         pos_cases = y_train_fold['premature'].value_counts()[1]
         neg_cases = y_train_fold['premature'].value_counts()[0]
+        print(f'Number of negative cases train data in fold {outer_fold_i}: {neg_cases}')
+        print(f'Number of positive cases train data in fold {outer_fold_i}: {pos_cases}')
+
+        pos_cases_test = y_test_fold['premature'].value_counts()[1]
+        neg_cases_test = y_test_fold['premature'].value_counts()[0]
+
+        print(f'Number of negative cases test data in fold {outer_fold_i}: {neg_cases_test}')
+        print(f'Number of positive cases test data in fold {outer_fold_i}: {pos_cases_test}')
+
         pos_weight = neg_cases / pos_cases
         print(f'pos weight: {pos_weight}')
 
@@ -244,11 +333,17 @@ def cross_validation_final_train(model_name):
         X_train_signal_fold_processed, X_test_signal_fold_processed, y_train_fold_processed, y_test_fold_processed = \
             preprocess_signal_data(X_train_signal_fold, X_test_signal_fold, y_train_fold, y_test_fold, features_to_use)
 
+        label_check_train = df_ground_truth.loc[df_ground_truth[c.REC_ID_NAME].isin(rec_ids_train_outer_fold), 'premature'].copy().reset_index(drop=True)
+        label_check_test = df_ground_truth.loc[df_ground_truth[c.REC_ID_NAME].isin(rec_ids_test_outer_fold), 'premature'].copy().reset_index(drop=True)
+
+        assert all(x == y for x, y in zip(y_train_fold_processed, label_check_train.values))
+        assert all(x == y for x, y in zip(y_test_fold_processed, label_check_test.values))
+
         if FLAGS.add_static_data:
             X_train_static_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].
-                isin(unique_train_rec_ids)].copy().reset_index(drop=True)
+                isin(rec_ids_train_outer_fold)].copy().reset_index(drop=True)
             X_test_static_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].
-                isin(unique_test_rec_ids)].copy().reset_index(drop=True)
+                isin(rec_ids_test_outer_fold)].copy().reset_index(drop=True)
 
             assert all(x == y for x, y in zip(X_train_signal_fold[c.REC_ID_NAME].unique(),
                                               X_train_static_fold[c.REC_ID_NAME].unique())), \
@@ -272,7 +367,6 @@ def cross_validation_final_train(model_name):
                                                                            rec_ids_x_train_signal,
                                                                            rec_ids_x_test_signal, features_to_use,
                                                                            threshold_correlation=0.85)
-            print(f'Y_train fold processed: {y_train_fold_processed}')
 
         if model_name == 'tcn' and not FLAGS.add_static_data:
             features_to_use_static = []
@@ -311,7 +405,8 @@ def get_best_params(optimal_params_file_name: str, outer_fold_i: int):
 
     hyper_opt_params = pd.read_csv(f'{path_to_optimal_params}')
 
-    df_mean_loss_per_outer_fold = hyper_opt_params.groupby(['params', 'outer_fold']).agg({'loss': np.mean,
+    df_mean_auc_per_outer_fold = hyper_opt_params.groupby(['params', 'outer_fold']).agg({'mean_prob_auc': np.mean,
+                                                                                          'max_prob_auc': np.mean,
                                                                                           'rec_ids_train_outer': lambda x: x.unique(),
                                                                                           'rec_ids_test_outer': lambda x: x.unique(),
                                                                                           'rec_ids_train_inner': lambda x: x.unique(),
@@ -322,23 +417,82 @@ def get_best_params(optimal_params_file_name: str, outer_fold_i: int):
     for column in columns_to_change:
 
         if column in ['rec_ids_train_outer', 'rec_ids_test_outer']:
-            df_mean_loss_per_outer_fold[column] = df_mean_loss_per_outer_fold[column].map(lambda row: [json.loads(row)])
-
+            df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [json.loads(row)])
 
         else:
             # Column is now array of strings (containing lists) -> convert to list of lists
-            df_mean_loss_per_outer_fold[column] = df_mean_loss_per_outer_fold[column].map(lambda row: [json.loads(i) for i in row])
+            df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [json.loads(i) for i in row])
 
         # Flatten list of lists to 1 list with integers
-        df_mean_loss_per_outer_fold[column] = df_mean_loss_per_outer_fold[column].map(lambda row: [item for sublist in row for item in sublist])
+        df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [item for sublist in row for item in sublist])
 
-    df_min_loss_per_outer_fold = df_mean_loss_per_outer_fold.loc[df_mean_loss_per_outer_fold.groupby(['outer_fold'])['loss'].idxmin()].copy().reset_index(drop=True)
+    auc_mean_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)['mean_prob_auc'].mean()
 
-    best_params = ast.literal_eval(df_min_loss_per_outer_fold.loc[df_min_loss_per_outer_fold['outer_fold'] == outer_fold_i, 'params'][outer_fold_i])
-    rec_ids_train_outer_fold = df_min_loss_per_outer_fold.loc[df_min_loss_per_outer_fold['outer_fold'] == outer_fold_i, 'rec_ids_train_outer'][outer_fold_i]
-    rec_ids_test_outer_fold = df_min_loss_per_outer_fold.loc[df_min_loss_per_outer_fold['outer_fold'] == outer_fold_i, 'rec_ids_test_outer'][outer_fold_i]
-    rec_ids_train_inner_fold = df_min_loss_per_outer_fold.loc[df_min_loss_per_outer_fold['outer_fold'] == outer_fold_i, 'rec_ids_train_inner'][outer_fold_i]
-    rec_ids_test_inner_fold = df_min_loss_per_outer_fold.loc[df_min_loss_per_outer_fold['outer_fold'] == outer_fold_i, 'rec_ids_test_inner'][outer_fold_i]
+    auc_max_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)['max_prob_auc'].mean()
+
+    if auc_mean_over_all_folds > auc_max_over_all_folds:
+        df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)
+    else:
+        df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)
+
+
+    best_params = ast.literal_eval(df_final.loc[df_final['outer_fold'] == outer_fold_i, 'params'][outer_fold_i])
+    rec_ids_train_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_outer'][outer_fold_i]
+    rec_ids_test_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_test_outer'][outer_fold_i]
+    rec_ids_train_inner_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_inner'][outer_fold_i]
+    rec_ids_test_inner_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_test_inner'][outer_fold_i]
+
+    # Safety check that train and test set of outer fold are mutually exclusive
+    assert not set(rec_ids_train_outer_fold) == set(rec_ids_test_outer_fold)
+
+    # Safety check that train+test of inner and test set of outer fold are mutually exclusive
+    assert not set(rec_ids_test_outer_fold) == set(rec_ids_train_inner_fold + rec_ids_test_inner_fold)
+
+    return best_params, rec_ids_train_outer_fold, rec_ids_test_outer_fold
+
+
+def get_best_params_comb_model(optimal_params_file_name: str, outer_fold_i: int):
+    output_path = os.path.join(file_paths['output_path'], 'model')
+
+    path_to_optimal_params = f'{output_path}/hyper_parameter_opt/{optimal_params_file_name}'
+
+    hyper_opt_params = pd.read_csv(f'{path_to_optimal_params}')
+
+    df_mean_auc_per_outer_fold = hyper_opt_params.groupby(['params', 'outer_fold']).agg({'mean_prob_auc': np.mean,
+                                                                                          'max_prob_auc': np.mean,
+                                                                                          'rec_ids_train_outer': lambda x: x.unique(),
+                                                                                          'rec_ids_test_outer': lambda x: x.unique(),
+                                                                                          'rec_ids_train_inner': lambda x: x.unique(),
+                                                                                          'rec_ids_test_inner': lambda x: x.unique()}).reset_index()
+
+    columns_to_change = ['rec_ids_train_outer', 'rec_ids_test_outer', 'rec_ids_train_inner', 'rec_ids_test_inner']
+
+    for column in columns_to_change:
+
+        if column in ['rec_ids_train_outer', 'rec_ids_test_outer']:
+            df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [json.loads(row)])
+
+        else:
+            # Column is now array of strings (containing lists) -> convert to list of lists
+            df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [json.loads(i) for i in row])
+
+        # Flatten list of lists to 1 list with integers
+        df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [item for sublist in row for item in sublist])
+
+    auc_mean_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)['mean_prob_auc'].mean()
+
+    auc_max_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)['max_prob_auc'].mean()
+
+    if auc_mean_over_all_folds > auc_max_over_all_folds:
+        df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)
+    else:
+        df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)
+
+    best_params = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'params'][outer_fold_i]
+    rec_ids_train_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_outer'][outer_fold_i]
+    rec_ids_test_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_test_outer'][outer_fold_i]
+    rec_ids_train_inner_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_inner'][outer_fold_i]
+    rec_ids_test_inner_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_test_inner'][outer_fold_i]
 
     # Safety check that train and test set of outer fold are mutually exclusive
     assert not set(rec_ids_train_outer_fold) == set(rec_ids_test_outer_fold)

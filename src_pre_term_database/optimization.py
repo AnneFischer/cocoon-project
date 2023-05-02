@@ -392,10 +392,12 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
         self.final_val_prob = []
         self.final_test_prob = []
 
+        self.final_max_val_probabilities = []
         self.final_max_test_predictions = []
         self.final_max_test_probabilities = []
         self.train_losses = []
         self.val_losses = []
+        self.val_labels = []
         self.test_labels = []
 
     def reset_states(self, batch_size):
@@ -515,10 +517,13 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
             self.train_probabilities.clear()
 
         elif val:
+            self.val_labels.append(true_label)
             self.final_val_predictions.append(mean_pred)
             self.val_predictions.clear()
             self.final_val_prob.append(mean_prob)
             self.val_probabilities.clear()
+
+            self.final_max_val_probabilities.append(max_prob)
 
         elif test:
             self.test_labels.append(true_label)
@@ -583,6 +588,13 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
             # Clear at the beginning of every epoch
             self.final_train_prob.clear()
             self.final_val_prob.clear()
+            self.val_labels.clear()
+
+            self.train_losses.clear()
+            self.val_losses.clear()
+
+            self.final_val_predictions.clear()
+            self.final_max_val_probabilities.clear()
 
             for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
@@ -644,6 +656,7 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
+                all_val_probabilities = []
                 for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
@@ -672,8 +685,13 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
                         self.get_predictions_binary_model(y_pred, train=False, val=True, test=False)
 
                         if len(self.val_predictions) == self.num_sub_sequences:
-                            self.val_predictions.clear()
-                            self.val_probabilities.clear()
+                            all_val_probabilities.append(self.val_probabilities.copy())
+                            mean_pred, mean_prob, max_pred, max_prob = self.evaluate_after_entire_sequence(y_val, t,
+                                                                                                           train=False,
+                                                                                                           val=True,
+                                                                                                           test=False)
+                            # self.val_predictions.clear()
+                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -682,13 +700,24 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
                 avg_sample_val_loss_epoch = total_val_loss_epoch / total_samples_val
                 self.val_losses.append(avg_sample_val_loss_epoch)
 
+                val_labels_final = list(np.array(np.concatenate([array for array in self.val_labels], axis=0),
+                                                dtype=np.int64).flat)
+                final_val_prob_final = list(np.array(np.concatenate([array for array in self.final_val_prob],
+                                                                   axis=0)).flat)
+
+                final_max_val_probabilities_final = list(
+                    np.array(np.concatenate([array for array in self.final_max_val_probabilities], axis=0)).flat)
+
+                auc_mean_val = roc_auc_score(val_labels_final, final_val_prob_final)
+                auc_max_val = roc_auc_score(val_labels_final, final_max_val_probabilities_final)
+
             print(f"Epoch [{epoch}/{n_epochs}] Training loss: {avg_sample_train_loss_epoch:.4f}\t "
-                  f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
+                  f"Validation loss: {avg_sample_val_loss_epoch:.4f}\t AUC mean val: {auc_mean_val}\t AUC max val: {auc_max_val}")
             print('-' * 50)
 
         print('TRAINING COMPLETE')
 
-        return avg_sample_val_loss_epoch, params
+        return auc_mean_val, auc_max_val, params
 
     def final_train(self, train_loader_list, feature_name, add_static_data, fold_i, features_to_use,
                     model_optional, n_epochs=50):
@@ -1498,10 +1527,12 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
         self.final_val_prob = []
         self.final_test_prob = []
 
+        self.final_max_val_probabilities = []
         self.final_max_test_predictions = []
         self.final_max_test_probabilities = []
         self.train_losses = []
         self.val_losses = []
+        self.val_labels = []
         self.test_labels = []
 
     def reset_states(self, batch_size):
@@ -1621,10 +1652,12 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
             self.train_probabilities.clear()
 
         elif val:
+            self.val_labels.append(true_label)
             self.final_val_predictions.append(mean_pred)
             self.val_predictions.clear()
             self.final_val_prob.append(mean_prob)
             self.val_probabilities.clear()
+            self.final_max_val_probabilities.append(max_prob)
 
         elif test:
             self.test_labels.append(true_label)
@@ -1696,6 +1729,13 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
             # Clear at the beginning of every epoch
             self.final_train_prob.clear()
             self.final_val_prob.clear()
+            self.val_labels.clear()
+
+            self.train_losses.clear()
+            self.val_losses.clear()
+
+            self.final_val_predictions.clear()
+            self.final_max_val_probabilities.clear()
 
             for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
@@ -1743,6 +1783,8 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
+                all_val_probabilities = []
+
                 for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
@@ -1769,8 +1811,13 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
                         self.get_predictions_binary_model(y_pred, train=False, val=True, test=False)
 
                         if len(self.val_predictions) == self.num_sub_sequences:
-                            self.val_predictions.clear()
-                            self.val_probabilities.clear()
+                            all_val_probabilities.append(self.val_probabilities.copy())
+                            mean_pred, mean_prob, max_pred, max_prob = self.evaluate_after_entire_sequence(y_val, t,
+                                                                                                           train=False,
+                                                                                                           val=True,
+                                                                                                           test=False)
+                            # self.val_predictions.clear()
+                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -1779,13 +1826,24 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
                 avg_sample_val_loss_epoch = total_val_loss_epoch / total_samples_val
                 self.val_losses.append(avg_sample_val_loss_epoch)
 
+                val_labels_final = list(np.array(np.concatenate([array for array in self.val_labels], axis=0),
+                                                dtype=np.int64).flat)
+                final_val_prob_final = list(np.array(np.concatenate([array for array in self.final_val_prob],
+                                                                   axis=0)).flat)
+
+                final_max_val_probabilities_final = list(
+                    np.array(np.concatenate([array for array in self.final_max_val_probabilities], axis=0)).flat)
+
+                auc_mean_val = roc_auc_score(val_labels_final, final_val_prob_final)
+                auc_max_val = roc_auc_score(val_labels_final, final_max_val_probabilities_final)
+
             print(f"Epoch [{epoch}/{n_epochs}] Training loss: {avg_sample_train_loss_epoch:.4f}\t "
-                  f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
+                  f"Validation loss: {avg_sample_val_loss_epoch:.4f} \t AUC mean val: {auc_mean_val} \t AUC max val: {auc_max_val}")
             print('-' * 50)
 
         print('TRAINING COMPLETE')
 
-        return avg_sample_val_loss_epoch, params
+        return auc_mean_val, auc_max_val, params
 
     def final_train(self, train_loader_list, feature_name, add_static_data, fold_i, n_epochs=50):
         """The final model will be trained with the optimal hyperparameters on the train+val datset."""
@@ -2457,10 +2515,12 @@ class OptimizationTCNFeatureSequenceCombined:
         self.final_val_prob = []
         self.final_test_prob = []
 
+        self.final_max_val_probabilities = []
         self.final_max_test_predictions = []
         self.final_max_test_probabilities = []
         self.train_losses = []
         self.val_losses = []
+        self.val_labels = []
         self.test_labels = []
 
     def check_if_only_one_boolean(self, *args):
@@ -2601,10 +2661,13 @@ class OptimizationTCNFeatureSequenceCombined:
             self.train_probabilities.clear()
 
         elif val:
+            self.val_labels.append(true_label)
             self.final_val_predictions.append(mean_pred)
             self.val_predictions.clear()
             self.final_val_prob.append(mean_prob)
             self.val_probabilities.clear()
+
+            self.final_max_val_probabilities.append(max_prob)
 
         elif test:
             self.test_labels.append(true_label)
@@ -2685,6 +2748,13 @@ class OptimizationTCNFeatureSequenceCombined:
             # Clear at the beginning of every epoch
             self.final_train_prob.clear()
             self.final_val_prob.clear()
+            self.val_labels.clear()
+
+            self.train_losses.clear()
+            self.val_losses.clear()
+
+            self.final_val_predictions.clear()
+            self.final_max_val_probabilities.clear()
 
             for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
@@ -2736,6 +2806,8 @@ class OptimizationTCNFeatureSequenceCombined:
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
+                all_val_probabilities = []
+
                 for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
@@ -2767,8 +2839,13 @@ class OptimizationTCNFeatureSequenceCombined:
                         self.get_predictions_binary_model(y_pred, train=False, val=True, test=False)
 
                         if len(self.val_predictions) == self.num_sub_sequences:
-                            self.val_predictions.clear()
-                            self.val_probabilities.clear()
+                            all_val_probabilities.append(self.val_probabilities.copy())
+                            mean_pred, mean_prob, max_pred, max_prob = self.evaluate_after_entire_sequence(y_val, t,
+                                                                                                           train=False,
+                                                                                                           val=True,
+                                                                                                           test=False)
+                            # self.val_predictions.clear()
+                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -2776,14 +2853,25 @@ class OptimizationTCNFeatureSequenceCombined:
                 # Calculate average sample validation loss for this particular epoch
                 avg_sample_val_loss_epoch = total_val_loss_epoch / total_samples_val
                 self.val_losses.append(avg_sample_val_loss_epoch)
+                val_labels_final = list(np.array(np.concatenate([array for array in self.val_labels], axis=0),
+                                                dtype=np.int64).flat)
+
+                final_val_prob_final = list(np.array(np.concatenate([array for array in self.final_val_prob],
+                                                                   axis=0)).flat)
+
+                final_max_val_probabilities_final = list(
+                    np.array(np.concatenate([array for array in self.final_max_val_probabilities], axis=0)).flat)
+
+                auc_mean_val = roc_auc_score(val_labels_final, final_val_prob_final)
+                auc_max_val = roc_auc_score(val_labels_final, final_max_val_probabilities_final)
 
             print(f"Epoch [{epoch}/{n_epochs}] Training loss: {avg_sample_train_loss_epoch:.4f}\t "
-                  f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
+                  f"Validation loss: {avg_sample_val_loss_epoch:.4f}\t AUC mean val: {auc_mean_val} \t AUC max val: {auc_max_val}")
             print('-' * 50)
 
         print('TRAINING COMPLETE')
 
-        return avg_sample_val_loss_epoch, params
+        return auc_mean_val, auc_max_val, params
 
     def final_train(self, train_loader_list, features_to_use, feature_name, add_static_data, fold_i, n_epochs=50):
         """The final model will be trained with the optimal hyperparameters after nested cross validation."""
@@ -2996,10 +3084,12 @@ class OptimizationTCNFeatureSequence:
         self.final_val_prob = []
         self.final_test_prob = []
 
+        self.final_max_val_probabilities = []
         self.final_max_test_predictions = []
         self.final_max_test_probabilities = []
         self.train_losses = []
         self.val_losses = []
+        self.val_labels = []
         self.test_labels = []
 
     def check_if_only_one_boolean(self, *args):
@@ -3059,8 +3149,6 @@ class OptimizationTCNFeatureSequence:
         elif test:
             predictions = self.test_predictions
             probabilities = self.test_probabilities
-
-        print(f'Test probabilities:{probabilities}')
 
         # Calculate the mean prediction by taking the average over all sub_sequences that make up
         # one total sequence. The variable predictions contains all the sub_sequence predictions
@@ -3128,7 +3216,6 @@ class OptimizationTCNFeatureSequence:
 
         # Data is first moved to cpu and then converted to numpy array
         true_label = y.cpu().data.numpy()
-        print(f'True label: {true_label}')
         mean_pred, mean_prob, max_pred, max_prob = self.obtain_correct_classified_instances(t,
                                                                                             train=train,
                                                                                             val=val,
@@ -3143,10 +3230,13 @@ class OptimizationTCNFeatureSequence:
             self.train_probabilities.clear()
 
         elif val:
+            self.val_labels.append(true_label)
             self.final_val_predictions.append(mean_pred)
             self.val_predictions.clear()
             self.final_val_prob.append(mean_prob)
             self.val_probabilities.clear()
+
+            self.final_max_val_probabilities.append(max_prob)
 
         elif test:
             self.test_labels.append(true_label)
@@ -3221,6 +3311,13 @@ class OptimizationTCNFeatureSequence:
             # Clear at the beginning of every epoch
             self.final_train_prob.clear()
             self.final_val_prob.clear()
+            self.val_labels.clear()
+
+            self.train_losses.clear()
+            self.val_losses.clear()
+
+            self.final_val_predictions.clear()
+            self.final_max_val_probabilities.clear()
 
             for train_loader in train_loader_list:
                 for t, (x_batch, y_batch) in enumerate(train_loader):
@@ -3259,6 +3356,8 @@ class OptimizationTCNFeatureSequence:
             with torch.no_grad():
                 total_val_loss_epoch = 0.0
                 correct_val, total_samples_val = 0, 0
+                all_val_probabilities = []
+
                 for val_loader in test_loader_list:
                     for t, (x_val, y_val) in enumerate(val_loader):
 
@@ -3282,8 +3381,13 @@ class OptimizationTCNFeatureSequence:
                         self.get_predictions_binary_model(y_pred, train=False, val=True, test=False)
 
                         if len(self.val_predictions) == self.num_sub_sequences:
-                            self.val_predictions.clear()
-                            self.val_probabilities.clear()
+                            all_val_probabilities.append(self.val_probabilities.copy())
+                            mean_pred, mean_prob, max_pred, max_prob = self.evaluate_after_entire_sequence(y_val, t,
+                                                                                                           train=False,
+                                                                                                           val=True,
+                                                                                                           test=False)
+                            # self.val_predictions.clear()
+                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -3291,14 +3395,25 @@ class OptimizationTCNFeatureSequence:
                 # Calculate average sample validation loss for this particular epoch
                 avg_sample_val_loss_epoch = total_val_loss_epoch / total_samples_val
                 self.val_losses.append(avg_sample_val_loss_epoch)
+                val_labels_final = list(np.array(np.concatenate([array for array in self.val_labels], axis=0),
+                                                dtype=np.int64).flat)
+
+                final_val_prob_final = list(np.array(np.concatenate([array for array in self.final_val_prob],
+                                                                   axis=0)).flat)
+
+                final_max_val_probabilities_final = list(
+                    np.array(np.concatenate([array for array in self.final_max_val_probabilities], axis=0)).flat)
+
+                auc_mean_val = roc_auc_score(val_labels_final, final_val_prob_final)
+                auc_max_val = roc_auc_score(val_labels_final, final_max_val_probabilities_final)
 
             print(f"Epoch [{epoch}/{n_epochs}] Training loss: {avg_sample_train_loss_epoch:.4f}\t "
-                  f"Validation loss: {avg_sample_val_loss_epoch:.4f}")
+                  f"Validation loss: {avg_sample_val_loss_epoch:.4f}\t AUC mean val: {auc_mean_val}\t AUC max val: {auc_max_val}")
             print('-' * 50)
 
         print('TRAINING COMPLETE')
 
-        return avg_sample_val_loss_epoch, params
+        return auc_mean_val, auc_max_val, params
 
     def final_train(self, train_loader_list, feature_name, add_static_data, fold_i, n_epochs=50):
         """The final model will be trained with the optimal hyperparameters on the train+val datset."""
@@ -3590,7 +3705,7 @@ class ObjectiveLSTMFeatureCombinedModel(object):
 
         start = timer()
 
-        loss, params = opt_lstm.train_combined_model(trial, train_loader_list, test_loader_list, self.features_to_use,
+        auc_mean_prob, auc_max_prob, params = opt_lstm.train_combined_model(trial, train_loader_list, test_loader_list, self.features_to_use,
                                                      params, n_epochs=params['num_epochs'])
 
         run_time = timer() - start
@@ -3598,11 +3713,11 @@ class ObjectiveLSTMFeatureCombinedModel(object):
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+        writer.writerow([auc_mean_prob, auc_max_prob, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
                          self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
-        return loss
+        return auc_mean_prob, auc_max_prob
 
 
 class ObjectiveTcnFeatureCombinedModelWithCopies(object):
@@ -3900,19 +4015,19 @@ class ObjectiveTcnFeatureCombinedModel(object):
 
         # Keep track of evals
         start = timer()
-        loss, params = opt_tcn.train(trial, train_loader_list, test_loader_list, features_to_use, params,
-                                     n_epochs=params['num_epochs'])
+        auc_mean_prob, auc_max_prob, params = opt_tcn.train(trial, train_loader_list, test_loader_list, features_to_use, params,
+                                                            n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+        writer.writerow([auc_mean_prob, auc_max_prob, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
                          self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
-        return loss
+        return auc_mean_prob, auc_max_prob
 
 
 class ObjectiveLSTMFeatureModel(object):
@@ -4002,19 +4117,20 @@ class ObjectiveLSTMFeatureModel(object):
 
         start = timer()
 
-        loss, params = opt_model_lstm_stateful_feature.train(trial, train_loader_list, test_loader_list,
-                                                             params, n_epochs=params['num_epochs'])
+        auc_mean_prob, auc_max_prob, params = opt_model_lstm_stateful_feature.train(trial, train_loader_list,
+                                                                                    test_loader_list, params,
+                                                                                    n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+        writer.writerow([auc_mean_prob, auc_max_prob, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
                          self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
-        return loss
+        return auc_mean_prob, auc_max_prob
 
 
 def main(model_name: str, feature_name: str, study, features_to_use: List[str],
@@ -4191,35 +4307,34 @@ class ObjectiveTcnFeatureModel(object):
         # Keep track of evals
         start = timer()
 
-        loss, params = opt_tcn.train(trial, train_loader_list, test_loader_list, params, n_epochs=params['num_epochs'])
+        auc_mean, auc_max, params = opt_tcn.train(trial, train_loader_list, test_loader_list, params, n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([loss, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
+        writer.writerow([auc_mean, auc_max, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
                          self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
         of_connection.close()
 
-        return loss
+        return auc_mean, auc_max
 
 
 def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_static_outer_fold, rec_ids_test_outer,
-                       out_file, outer_fold_i, add_static_data, model_name, feature_name):
+                       out_file, outer_fold_i, add_static_data, model_name, feature_name, df_ground_truth):
     groups = np.array(X_train_outer_fold[c.REC_ID_NAME])
     rec_ids_x_train_outer_unique = list(X_train_outer_fold[c.REC_ID_NAME].unique())
     loss_scores = []
+    auc_mean_scores = []
+    auc_max_scores = []
 
     skf_inner_groups = StratifiedGroupKFold(n_splits=3, random_state=0, shuffle=True)
     for inner_fold_j, (train_index_inner, test_index_inner) in enumerate(skf_inner_groups.split(X_train_outer_fold,
                                                                                                 y_train_outer_fold,
                                                                                                 groups)):
 
-
         print(f"Inner fold {inner_fold_j}")
-        #unique_recids_train_inner_fold = np.unique(groups[train_index_inner])
-        #unique_recids_test_inner_fold = np.unique(groups[test_index_inner])
 
         X_train_signal_inner_fold = X_train_outer_fold.iloc[train_index_inner].copy().reset_index(drop=True)
         X_test_signal_inner_fold = X_train_outer_fold.iloc[test_index_inner].copy().reset_index(drop=True)
@@ -4249,6 +4364,12 @@ def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_st
                                                                                            y_test_inner_fold,
                                                                                            features_to_use)
 
+        label_check_train = df_ground_truth.loc[df_ground_truth[c.REC_ID_NAME].isin(rec_ids_x_train_inner_unique), 'premature'].copy().reset_index(drop=True)
+        label_check_test = df_ground_truth.loc[df_ground_truth[c.REC_ID_NAME].isin(rec_ids_x_test_inner_unique), 'premature'].copy().reset_index(drop=True)
+
+        assert all(x == y for x, y in zip(y_train_inner_fold_processed, label_check_train.values))
+        assert all(x == y for x, y in zip(y_test_inner_fold_processed, label_check_test.values))
+
         if FLAGS.add_static_data:
             X_train_static_inner_fold = X_train_static_outer_fold.loc[
                     X_train_static_outer_fold[c.REC_ID_NAME].isin(rec_ids_x_train_inner_unique)].copy().reset_index(drop=True)
@@ -4267,27 +4388,29 @@ def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_st
                                                                                                       features_to_use,
                                                                                                       threshold_correlation=0.85)
 
+            assert all(x == y for x, y in zip(X_train_combined_inner_fold[c.REC_ID_NAME].unique(), rec_ids_x_train_inner_unique))
+            assert all(x == y for x, y in zip(X_test_combined_inner_fold[c.REC_ID_NAME].unique(), rec_ids_x_test_inner_unique))
+
         if model_name == 'tcn' and not add_static_data:
             features_to_use_static = []
-            loss = ObjectiveTcnFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
-                                            X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
-                                            y_train_inner_fold_processed, y_test_inner_fold_processed,
-                                            rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
-                                            rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
-                                            feature_name,
-                                            num_sub_sequences_fixed, features_to_use, features_to_use_static,
-                                            add_static_data, out_file, outer_fold_i, inner_fold_j).loss
+            auc_mean, auc_max = ObjectiveTcnFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
+                                                         X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
+                                                         y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                                         rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                                         rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
+                                                         feature_name, num_sub_sequences_fixed, features_to_use,
+                                                         features_to_use_static, add_static_data, out_file, outer_fold_i,
+                                                         inner_fold_j).loss
 
         if model_name == 'tcn' and FLAGS.add_static_data and not FLAGS.use_copies_for_static_data:
-            loss = ObjectiveTcnFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
-                                                    X_train_combined_processed, X_test_combined_processed,
-                                                    y_train_inner_fold_processed, y_test_inner_fold_processed,
-                                                    rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
-                                                    rec_ids_x_train_outer_unique, rec_ids_test_outer,
-                                                    pos_weight,
-                                                    feature_name, num_sub_sequences_fixed, features_to_use,
-                                                    selected_columns_train_static, out_file,
-                                                    outer_fold_i, inner_fold_j).loss
+            auc_mean, auc_max = ObjectiveTcnFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
+                                                                 X_train_combined_processed, X_test_combined_processed,
+                                                                 y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                                                 rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                                                 rec_ids_x_train_outer_unique, rec_ids_test_outer,
+                                                                 pos_weight, feature_name, num_sub_sequences_fixed,
+                                                                 features_to_use, selected_columns_train_static,
+                                                                 out_file, outer_fold_i, inner_fold_j).loss
 
         elif model_name == 'tcn' and FLAGS.add_static_data and FLAGS.use_copies_for_static_data:
             loss = ObjectiveTcnFeatureCombinedModelWithCopies(trial, X_train_combined_inner_fold,
@@ -4296,39 +4419,38 @@ def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_st
                                                               y_test_inner_fold_processed,
                                                               rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
                                                               rec_ids_x_train_outer_unique, rec_ids_test_outer,
-                                                              pos_weight,
-                                                              feature_name, num_sub_sequences_fixed, features_to_use,
-                                                              selected_columns_train_static, out_file,
+                                                              pos_weight, feature_name, num_sub_sequences_fixed,
+                                                              features_to_use, selected_columns_train_static, out_file,
                                                               outer_fold_i, inner_fold_j).loss
 
         elif model_name == 'lstm' and not FLAGS.add_static_data:
             features_to_use_static = []
 
-            loss = ObjectiveLSTMFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
-                                             X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
-                                             y_train_inner_fold_processed, y_test_inner_fold_processed,
-                                             rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
-                                             rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
-                                             feature_name,
-                                             num_sub_sequences_fixed, features_to_use, features_to_use_static,
-                                             out_file, outer_fold_i, inner_fold_j).loss
+            auc_mean, auc_max = ObjectiveLSTMFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
+                                                          X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
+                                                          y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                                          rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                                          rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
+                                                          feature_name, num_sub_sequences_fixed, features_to_use,
+                                                          features_to_use_static, out_file, outer_fold_i, inner_fold_j).loss
 
         elif model_name == 'lstm' and FLAGS.add_static_data:
-            loss = ObjectiveLSTMFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
-                                                     X_train_combined_processed, X_test_combined_processed,
-                                                     y_train_inner_fold_processed, y_test_inner_fold_processed,
-                                                     rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
-                                                     rec_ids_x_train_outer_unique, rec_ids_test_outer,
-                                                     pos_weight,
-                                                     feature_name, num_sub_sequences_fixed, features_to_use,
-                                                     selected_columns_train_static, out_file,
-                                                     outer_fold_i, inner_fold_j).loss
+            auc_mean, auc_max = ObjectiveLSTMFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
+                                                                  X_train_combined_processed, X_test_combined_processed,
+                                                                  y_train_inner_fold_processed, y_test_inner_fold_processed,
+                                                                  rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+                                                                  rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
+                                                                  feature_name, num_sub_sequences_fixed, features_to_use,
+                                                                  selected_columns_train_static, out_file, outer_fold_i,
+                                                                  inner_fold_j).loss
 
-        loss_scores.append(loss)
+        #loss_scores.append(loss)
+        auc_mean_scores.append(auc_mean)
+        auc_max_scores.append(auc_max)
 
-    print(f'Inner folds loss scores: {loss_scores}')
+    #print(f'Inner folds loss scores: {loss_scores}')
 
-    return np.mean(loss_scores)
+    return np.mean(auc_mean_scores), np.mean(auc_max_scores)
 
 
 def objective_cv_outer(trial):
@@ -4346,10 +4468,14 @@ def objective_cv_outer(trial):
 
     groups = np.array(df_features[c.REC_ID_NAME])
 
+    ground_truth_rec_id_and_label = pd.concat([df_features[c.REC_ID_NAME], df_label], axis=1)
+
     if FLAGS.add_static_data:
         df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
 
     loss_scores_outer = []
+    auc_mean_outer = []
+    auc_max_outer = []
 
     skf_outer_groups = StratifiedGroupKFold(n_splits=5, random_state=0, shuffle=True)
     for outer_fold_i, (train_index_outer, test_index_outer) in enumerate(skf_outer_groups.split(df_features, df_label,
@@ -4385,14 +4511,17 @@ def objective_cv_outer(trial):
         else:
             X_train_static_outer_fold = None
 
-        loss_scores = objective_cv_inner(trial, X_train_signal_outer_fold, y_train_outer_fold,
-                                         X_train_static_outer_fold, rec_ids_x_test_outer_unique, out_file, outer_fold_i,
-                                         FLAGS.add_static_data, FLAGS.model, FLAGS.feature_name)
+        auc_mean_scores, auc_max_scores = objective_cv_inner(trial, X_train_signal_outer_fold, y_train_outer_fold, X_train_static_outer_fold,
+                                         rec_ids_x_test_outer_unique, out_file, outer_fold_i, FLAGS.add_static_data,
+                                         FLAGS.model, FLAGS.feature_name, ground_truth_rec_id_and_label)
 
-        loss_scores_outer.append(loss_scores)
-    print(f'Outer folds loss scores: {loss_scores_outer}')
+        #loss_scores_outer.append(loss_scores)
+        auc_mean_outer.append(auc_mean_scores)
+        auc_max_outer.append(auc_max_scores)
 
-    return np.mean(loss_scores_outer)
+    #print(f'Outer folds loss scores: {loss_scores_outer}')
+
+    return np.mean(auc_mean_outer), np.mean(auc_max_outer)
 
 
 def main2(model_name: str, feature_name: str, study, add_static_data: bool, copies: bool,
@@ -4403,12 +4532,12 @@ def main2(model_name: str, feature_name: str, study, add_static_data: bool, copi
     writer = csv.writer(of_connection)
 
     # Write the headers to the file
-    writer.writerow(['loss', 'params', 'outer_fold', 'inner_fold', 'rec_ids_train_outer', 'rec_ids_test_outer',
-                     'rec_ids_train_inner', 'rec_ids_test_inner', 'train_time'])
+    writer.writerow(['mean_prob_auc', 'max_prob_auc', 'params', 'outer_fold', 'inner_fold',  'rec_ids_train_outer',
+                     'rec_ids_test_outer', 'rec_ids_train_inner', 'rec_ids_test_inner', 'train_time'])
     of_connection.close()
 
     study.optimize(objective_cv_outer, n_trials=n_trials)
-    print(study.best_trial)
+    print(study.best_trials)
 
     if add_static_data and not copies:
         joblib.dump(study,
@@ -4508,7 +4637,7 @@ if __name__ == "__main__":
 
     # If new study
     if FLAGS.new_study:
-        study = optuna.create_study(direction='minimize', sampler=optuna.samplers.TPESampler())
+        study = optuna.create_study(directions=["maximize", "maximize"], sampler=optuna.samplers.TPESampler())
     # If continue with study
     if not FLAGS.new_study:
         study = joblib.load(f"{output_path}/{FLAGS.study_name}")

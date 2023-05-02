@@ -1410,8 +1410,8 @@ def add_static_data_to_signal_data(X_train_static: pd.DataFrame, X_test_static: 
                                                                                     "is not equal for train" \
                                                                                     "and test!"
     # Safety check if the data consequently processed for the correct order of rec ids
-    assert set(rec_id_list_static_test) == set(X_test_static[c.REC_ID_NAME].unique())
-    assert set(rec_id_list_static_train) == set(X_train_static[c.REC_ID_NAME].unique())
+    assert all(x == y for x, y in zip(set(rec_id_list_static_test), set(X_test_static[c.REC_ID_NAME].unique())))
+    assert all(x == y for x, y in zip(set(rec_id_list_static_train), set(X_train_static[c.REC_ID_NAME].unique())))
 
     # Re-add column 'rec_id'
     df_static_train = pd.concat([pd.DataFrame(rec_id_list_static_train, columns=[c.REC_ID_NAME]),
@@ -1421,12 +1421,10 @@ def add_static_data_to_signal_data(X_train_static: pd.DataFrame, X_test_static: 
                                 pd.DataFrame(x_arr_static_test, columns=selected_columns_test_static)], axis=1)
 
     X_train_signal_processed = pd.concat([pd.DataFrame(rec_ids_x_train_signal, columns=[c.REC_ID_NAME]),
-                                          pd.DataFrame(X_train_signal_processed,
-                                                       columns=features_to_use)], axis=1)
+                                          pd.DataFrame(X_train_signal_processed, columns=features_to_use)], axis=1)
 
     X_test_signal_processed = pd.concat([pd.DataFrame(rec_ids_x_test_signal, columns=[c.REC_ID_NAME]),
-                                         pd.DataFrame(X_test_signal_processed,
-                                                      columns=features_to_use)], axis=1)
+                                         pd.DataFrame(X_test_signal_processed, columns=features_to_use)], axis=1)
 
     X_train_combined_processed = X_train_signal_processed.merge(df_static_train,
                                                                 on=c.REC_ID_NAME).reset_index(drop=True)
