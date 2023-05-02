@@ -1,5 +1,5 @@
 # cocoon-project
-Repo for preterm birth prediction using machine learning.
+Repo for preterm birth prediction using machine learning. This repo was used for the paper 'End-to-end learning with interpretation on electrohysterography data to predict preterm birth', which can be found here: https://www.sciencedirect.com/science/article/pii/S0010482523003116?dgcid=author
 
 Download this repo by running: ```git clone https://github.com/AnneFischer/cocoon-project```.
 
