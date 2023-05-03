@@ -149,7 +149,7 @@ Usage of re-running hyperoptimization:
   --n_trials N_TRIALS   Number of runs you want to do for hyperoptimization. Default is 50 runs.
 ```
 
-Example to do hyperoptimization for the TCN model, with peak frequency as method of data reduction, no static data and 100 runs over the hyperparameter space:
+Example how to do hyperoptimization for the TCN model, with peak frequency as method of data reduction, no static data and 100 runs over the hyperparameter space:
 
 ```python
 python ./src_pre_term_database/optimization.py --model 'tcn' --feature_name 'peak_frequency' --reduced_seq_length 50 --sub_seq_length 10 --no_static_data --new_study --n_trials 100
