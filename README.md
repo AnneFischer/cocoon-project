@@ -85,7 +85,7 @@ Usage:
                         
 ```
 
-Example of how to evaluate the final model for TCN with peak frequency as method of data reduction, no static data added in the command line:
+Example of how to evaluate the final model for TCN with peak frequency as method of data reduction and no static data added in the command line:
 
 ```python
 python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --hyperoptimization_file_name 'tcn_data_trials_feature_peak_frequency_2023-02-21_16-22.csv' --n_folds 5 --reduced_seq_length 50 --sub_seq_length 10 --no_static_data --no_baseline
@@ -164,6 +164,6 @@ The final model will be saved in the `trained_models` folder. After running `fin
 Example usage `final_train.py`:
 
 ```python
-python ./src_pre_term_database/final_train.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data
+python ./src_pre_term_database/final_train.py --model 'tcn' --feature_name 'peak_frequency' --hyperoptimization_file_name 'tcn_data_trials_feature_peak_frequency_2023-02-21_16-22.csv' --n_folds 5 --reduced_seq_length 50 --sub_seq_length 10 --no_static_data
 ```
 
