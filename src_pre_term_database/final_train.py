@@ -249,7 +249,15 @@ def final_train_tcn_feature_sequence(x_train, x_train_processed, y_train_process
                             add_static_data=FLAGS.add_static_data, fold_i=fold_i, n_epochs=best_params['num_epochs'])
 
 
-def cross_validation_final_train(model_name):
+def cross_validation_final_train(model_name: str):
+    """Final train the cross validation models. For each fold, the corresponding train data will be selected
+    and a model with the optimal hyperparameter settings will be trained on that specific fold.
+
+    Parameters
+    ----------
+    model_name : str
+        Name of the model which you want to final train. Either 'lstm' or 'tcn'.
+    """
     # Load dataset from hard disk
     # Original signal data
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
@@ -266,6 +274,8 @@ def cross_validation_final_train(model_name):
     # The number of sub-sequences needed to make up an original sequence
     num_sub_sequences_fixed = int(FLAGS.reduced_seq_length / FLAGS.sub_seq_length)
 
+    path_to_optimal_params = f'{hyperopt_path}/{FLAGS.hyperoptimization_file_name}'
+
     if FLAGS.add_static_data:
         df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
 
@@ -279,14 +289,15 @@ def cross_validation_final_train(model_name):
             # If static data is added to the model, add the optional model part to the best_params dict
             best_params.update(optional_model_dict[best_params_model_name])
 
-            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params_comb_model(FLAGS.hyperoptimization_file_name,
-                                                                                              outer_fold_i=outer_fold_i)
+            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(path_to_optimal_params,
+                                                                                   outer_fold_i=outer_fold_i,
+                                                                                   add_static_data=FLAGS.add_static_data)
 
         elif not FLAGS.add_static_data:
-            best_params_model, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(FLAGS.hyperoptimization_file_name,
-                                                                                                   outer_fold_i=outer_fold_i)
-            print(outer_fold_i)
-            print(best_params_model)
+            best_params_model, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(path_to_optimal_params,
+                                                                                                   outer_fold_i=outer_fold_i,
+                                                                                                   add_static_data=FLAGS.add_static_data)
+
             best_params_model_name = f'{FLAGS.model}_{FLAGS.feature_name}_fold_{outer_fold_i}'
 
             best_params_file: dict = read_settings(settings_path, 'best_params')
@@ -300,9 +311,6 @@ def cross_validation_final_train(model_name):
 
             best_params = best_params_file[best_params_model_name]
 
-    # skf_outer_groups = StratifiedGroupKFold(n_splits=5, random_state=0, shuffle=True)
-    # for fold_i, (train_index, test_index) in enumerate(skf_outer_groups.split(df_features, df_label, groups)):
-
         df_train_outer_fold = df_total.loc[df_total[c.REC_ID_NAME].isin(rec_ids_train_outer_fold)].copy().reset_index(drop=True)
         df_test_outer_fold = df_total.loc[df_total[c.REC_ID_NAME].isin(rec_ids_test_outer_fold)].copy().reset_index(drop=True)
 
@@ -311,24 +319,12 @@ def cross_validation_final_train(model_name):
 
         pos_cases = y_train_fold['premature'].value_counts()[1]
         neg_cases = y_train_fold['premature'].value_counts()[0]
-        print(f'Number of negative cases train data in fold {outer_fold_i}: {neg_cases}')
-        print(f'Number of positive cases train data in fold {outer_fold_i}: {pos_cases}')
-
-        pos_cases_test = y_test_fold['premature'].value_counts()[1]
-        neg_cases_test = y_test_fold['premature'].value_counts()[0]
-
-        print(f'Number of negative cases test data in fold {outer_fold_i}: {neg_cases_test}')
-        print(f'Number of positive cases test data in fold {outer_fold_i}: {pos_cases_test}')
 
         pos_weight = neg_cases / pos_cases
-        print(f'pos weight: {pos_weight}')
 
         # We keep the rec ids order to later on merge the static data correctly
         rec_ids_x_train_signal = list(X_train_signal_fold[c.REC_ID_NAME])
         rec_ids_x_test_signal = list(X_test_signal_fold[c.REC_ID_NAME])
-
-        # # We keep the rec ids order to later on merge the static data correctly
-        # rec_ids_x_train_unique = X_train_signal_fold[c.REC_ID_NAME].unique()
 
         X_train_signal_fold_processed, X_test_signal_fold_processed, y_train_fold_processed, y_test_fold_processed = \
             preprocess_signal_data(X_train_signal_fold, X_test_signal_fold, y_train_fold, y_test_fold, features_to_use)
@@ -385,32 +381,48 @@ def cross_validation_final_train(model_name):
         elif model_name == 'lstm' and not FLAGS.add_static_data:
             features_to_use_static = []
             final_train_lstm_feature_sequence(X_train_signal_fold, X_train_signal_fold_processed,
-                                              y_train_fold_processed,
-                                              num_sub_sequences_fixed, rec_ids_train_outer_fold, pos_weight, best_params,
-                                              features_to_use, features_to_use_static,
+                                              y_train_fold_processed, num_sub_sequences_fixed, rec_ids_train_outer_fold,
+                                              pos_weight, best_params, features_to_use, features_to_use_static,
                                               num_static_features=len(features_to_use_static), fold_i=outer_fold_i)
 
         elif model_name == 'lstm' and FLAGS.add_static_data:
             final_train_lstm_feature_sequence(X_train_combined_fold, X_train_combined_processed, y_train_fold_processed,
-                                              num_sub_sequences_fixed, rec_ids_train_outer_fold, pos_weight, best_params,
-                                              features_to_use, selected_columns_train_static,
+                                              num_sub_sequences_fixed, rec_ids_train_outer_fold, pos_weight,
+                                              best_params, features_to_use, selected_columns_train_static,
                                               num_static_features=len(selected_columns_train_static),
                                               fold_i=outer_fold_i)
 
 
-def get_best_params(optimal_params_file_name: str, outer_fold_i: int):
-    output_path = os.path.join(file_paths['output_path'], 'model')
+def get_best_params(path_to_optimal_params: str, outer_fold_i: int, add_static_data: bool):
+    """Get the best hyperparameters for outer_fold_i.
 
-    path_to_optimal_params = f'{output_path}/hyper_parameter_opt/{optimal_params_file_name}'
+    Parameters
+    ----------
+    path_to_optimal_params : str
+        Path of where the optimal hyperparameters are stored.
+    outer_fold_i : int
+        Number of the fold.
+    add_static_data : bool
+        True or False. Whether or not you want to have the model on only EHG or both EHG + static data.
 
+    Returns
+    ----------
+    best_params : Dict
+        Dictionary containing the best hyperparameters
+    rec_ids_train_outer_fold: List[int]
+        List with the rec_ids that were used in the train fold.
+    rec_ids_test_outer_fold: List[int]
+        List with the rec_ids that were used in the test fold.
+    """
     hyper_opt_params = pd.read_csv(f'{path_to_optimal_params}')
 
+    # Take the mean auc over the mean/max probabilities of the sub-sequences over all outer folds
     df_mean_auc_per_outer_fold = hyper_opt_params.groupby(['params', 'outer_fold']).agg({'mean_prob_auc': np.mean,
-                                                                                          'max_prob_auc': np.mean,
-                                                                                          'rec_ids_train_outer': lambda x: x.unique(),
-                                                                                          'rec_ids_test_outer': lambda x: x.unique(),
-                                                                                          'rec_ids_train_inner': lambda x: x.unique(),
-                                                                                          'rec_ids_test_inner': lambda x: x.unique()}).reset_index()
+                                                                                         'max_prob_auc': np.mean,
+                                                                                         'rec_ids_train_outer': lambda x: x.unique(),
+                                                                                         'rec_ids_test_outer': lambda x: x.unique(),
+                                                                                         'rec_ids_train_inner': lambda x: x.unique(),
+                                                                                         'rec_ids_test_inner': lambda x: x.unique()}).reset_index()
 
     columns_to_change = ['rec_ids_train_outer', 'rec_ids_test_outer', 'rec_ids_train_inner', 'rec_ids_test_inner']
 
@@ -426,69 +438,24 @@ def get_best_params(optimal_params_file_name: str, outer_fold_i: int):
         # Flatten list of lists to 1 list with integers
         df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [item for sublist in row for item in sublist])
 
+    # Corresponding to the highest mean auc with the mean probabilities predictions
     auc_mean_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)['mean_prob_auc'].mean()
 
+    # Corresponding to the highest mean auc with the max probabilities predictions
     auc_max_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)['max_prob_auc'].mean()
 
+    # Here we check if either the max or mean probabilities predictions resulted in a higher AUC
     if auc_mean_over_all_folds > auc_max_over_all_folds:
         df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)
     else:
         df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)
 
+    # Here we select the best params corresponding to the highest AUC score for a specific fold.
+    if not add_static_data:
+        best_params = ast.literal_eval(df_final.loc[df_final['outer_fold'] == outer_fold_i, 'params'][outer_fold_i])
+    if add_static_data:
+        best_params = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'params'][outer_fold_i]
 
-    best_params = ast.literal_eval(df_final.loc[df_final['outer_fold'] == outer_fold_i, 'params'][outer_fold_i])
-    rec_ids_train_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_outer'][outer_fold_i]
-    rec_ids_test_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_test_outer'][outer_fold_i]
-    rec_ids_train_inner_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_inner'][outer_fold_i]
-    rec_ids_test_inner_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_test_inner'][outer_fold_i]
-
-    # Safety check that train and test set of outer fold are mutually exclusive
-    assert not set(rec_ids_train_outer_fold) == set(rec_ids_test_outer_fold)
-
-    # Safety check that train+test of inner and test set of outer fold are mutually exclusive
-    assert not set(rec_ids_test_outer_fold) == set(rec_ids_train_inner_fold + rec_ids_test_inner_fold)
-
-    return best_params, rec_ids_train_outer_fold, rec_ids_test_outer_fold
-
-
-def get_best_params_comb_model(optimal_params_file_name: str, outer_fold_i: int):
-    output_path = os.path.join(file_paths['output_path'], 'model')
-
-    path_to_optimal_params = f'{output_path}/hyper_parameter_opt/{optimal_params_file_name}'
-
-    hyper_opt_params = pd.read_csv(f'{path_to_optimal_params}')
-
-    df_mean_auc_per_outer_fold = hyper_opt_params.groupby(['params', 'outer_fold']).agg({'mean_prob_auc': np.mean,
-                                                                                          'max_prob_auc': np.mean,
-                                                                                          'rec_ids_train_outer': lambda x: x.unique(),
-                                                                                          'rec_ids_test_outer': lambda x: x.unique(),
-                                                                                          'rec_ids_train_inner': lambda x: x.unique(),
-                                                                                          'rec_ids_test_inner': lambda x: x.unique()}).reset_index()
-
-    columns_to_change = ['rec_ids_train_outer', 'rec_ids_test_outer', 'rec_ids_train_inner', 'rec_ids_test_inner']
-
-    for column in columns_to_change:
-
-        if column in ['rec_ids_train_outer', 'rec_ids_test_outer']:
-            df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [json.loads(row)])
-
-        else:
-            # Column is now array of strings (containing lists) -> convert to list of lists
-            df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [json.loads(i) for i in row])
-
-        # Flatten list of lists to 1 list with integers
-        df_mean_auc_per_outer_fold[column] = df_mean_auc_per_outer_fold[column].map(lambda row: [item for sublist in row for item in sublist])
-
-    auc_mean_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)['mean_prob_auc'].mean()
-
-    auc_max_over_all_folds = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)['max_prob_auc'].mean()
-
-    if auc_mean_over_all_folds > auc_max_over_all_folds:
-        df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['mean_prob_auc'].idxmax()].copy().reset_index(drop=True)
-    else:
-        df_final = df_mean_auc_per_outer_fold.loc[df_mean_auc_per_outer_fold.groupby(['outer_fold'])['max_prob_auc'].idxmax()].copy().reset_index(drop=True)
-
-    best_params = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'params'][outer_fold_i]
     rec_ids_train_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_outer'][outer_fold_i]
     rec_ids_test_outer_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_test_outer'][outer_fold_i]
     rec_ids_train_inner_fold = df_final.loc[df_final['outer_fold'] == outer_fold_i, 'rec_ids_train_inner'][outer_fold_i]
@@ -509,17 +476,18 @@ def main(model_name: str):
 
 if __name__ == "__main__":
     out_path_model = os.path.abspath("trained_models")
+    hyperopt_path = os.path.abspath("hyperparameters")
 
     # Command line arguments
     parser = argparse.ArgumentParser(description='Train a final model (on the train+validation dataset) using the '
-                                                 'optimal hyperparameters obtained afer running optimization.py. The '
+                                                 'optimal hyperparameters obtained after running optimization.py. The '
                                                  'optimal hyperparameters have to be put in the best_params.json file '
                                                  'and the optional_model part has to be put in the optional_model_dict '
                                                  'and bidirectional_lstm_dict, which are placed at the top of this '
                                                  'final_train.py file. The final model will be saved in the '
                                                  'out_path_model folder, which you have to specify in this main file. '
                                                  'After running this file, you have to put the name of your final '
-                                                 'model in the final_models.json file and then you can run '
+                                                 'models in the final_models.json file and then you can run '
                                                  'evaluation.py.')
 
     parser.add_argument('--model', type=str, required=True,
@@ -531,9 +499,11 @@ if __name__ == "__main__":
                              "'median_frequency'",
                         choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
 
-    parser.add_argument('--hyperoptimization_file_name', type=str, required=True)
+    parser.add_argument('--hyperoptimization_file_name', type=str, required=True,
+                        help="Name of the file with the results of the hyperoptimization run. The best params for each "
+                             "model are already provided in the `best_params.json` file.")
 
-    parser.add_argument('--n_folds', type=int, required=True)
+    parser.add_argument('--n_folds', type=int, required=True, help="Number of outer folds used. Default is 5.")
 
     parser.add_argument('--reduced_seq_length', type=int, required=True, default=50,
                         help="The time window length of which you want to calculate feature_name on each time step."
