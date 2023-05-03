@@ -6,10 +6,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from src_pre_term_database.data_processing_and_feature_engineering import generate_feature_data_loaders, \
-    train_val_test_split, preprocess_static_data, preprocess_signal_data, generate_dataloader, \
+from src_pre_term_database.data_processing_and_feature_engineering import preprocess_signal_data, generate_dataloader, \
     add_static_data_to_signal_data, basic_preprocessing_static_data, basic_preprocessing_signal_data
-from src_pre_term_database.load_dataset import build_clinical_information_dataframe, build_demographics_dataframe
+from src_pre_term_database.load_dataset import build_clinical_information_dataframe
 import constants as c
 import matplotlib.pyplot as plt
 import datetime
@@ -20,7 +19,6 @@ from sklearn.metrics import precision_score, recall_score, f1_score, precision_r
     average_precision_score
 import csv
 from timeit import default_timer as timer
-from sklearn.preprocessing import LabelEncoder
 import math
 from typing import List, Dict
 import argparse
@@ -3589,7 +3587,7 @@ class ObjectiveLSTMFeatureCombinedModel(object):
         self.outer_fold = outer_fold
         self.inner_fold = inner_fold
 
-        self.loss = self.calculate_loss(trial)
+        self.auc = self.calculate_auc(trial)
 
     # Build a model by implementing define-by-run design from Optuna
     def build_model_custom(self, trial, hidden_dim, params):
@@ -3642,7 +3640,7 @@ class ObjectiveLSTMFeatureCombinedModel(object):
 
         return nn.Sequential(*layers), params
 
-    def calculate_loss(self, trial):
+    def calculate_auc(self, trial):
         params = {
             'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
             'layer_dim': trial.suggest_int('layer_dim', 1, 3),
@@ -3898,7 +3896,7 @@ class ObjectiveTcnFeatureCombinedModel(object):
         self.outer_fold = outer_fold
         self.inner_fold = inner_fold
 
-        self.loss = self.calculate_loss(trial)
+        self.auc = self.calculate_auc(trial)
 
     # Build a model by implementing define-by-run design from Optuna
     def build_model_custom(self, trial, hidden_dim, params):
@@ -3951,7 +3949,7 @@ class ObjectiveTcnFeatureCombinedModel(object):
 
         return nn.Sequential(*layers), params
 
-    def calculate_loss(self, trial):
+    def calculate_auc(self, trial):
         params = {
             'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
             'num_hidden_units_per_layer': trial.suggest_int('num_hidden_units_per_layer', 5, 15, 1),
@@ -4015,8 +4013,8 @@ class ObjectiveTcnFeatureCombinedModel(object):
 
         # Keep track of evals
         start = timer()
-        auc_mean_prob, auc_max_prob, params = opt_tcn.train(trial, train_loader_list, test_loader_list, features_to_use, params,
-                                                            n_epochs=params['num_epochs'])
+        auc_mean_prob, auc_max_prob, params = opt_tcn.train(trial, train_loader_list, test_loader_list, features_to_use,
+                                                            params, n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
@@ -4054,9 +4052,9 @@ class ObjectiveLSTMFeatureModel(object):
         self.outer_fold = outer_fold
         self.inner_fold = inner_fold
 
-        self.loss = self.calculate_loss(trial)
+        self.auc = self.calculate_auc(trial)
 
-    def calculate_loss(self, trial):
+    def calculate_auc(self, trial):
 
         params = {
             'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
@@ -4133,98 +4131,6 @@ class ObjectiveLSTMFeatureModel(object):
         return auc_mean_prob, auc_max_prob
 
 
-def main(model_name: str, feature_name: str, study, features_to_use: List[str],
-         add_static_data: bool, copies: bool, output_path: str, n_trials: int):
-    # Load dataset from hard disk
-    df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
-
-    df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
-    df_signals = df_signals_new.merge(df_clinical_information[[c.REC_ID_NAME, 'premature']],
-                                      how='left', on=c.REC_ID_NAME)
-
-    # Assign 0 to non-premature cases and assign 1 to premature cases
-    lb = LabelEncoder()
-    df_signals['premature'] = lb.fit_transform(df_signals['premature'])
-
-    X_train, X_val, X_test, y_train, _, _ = train_val_test_split(df_clinical_information, 'premature', test_ratio=0.2,
-                                                                 shuffle=True, random_state=0)
-
-    df_demographics = build_demographics_dataframe(data_path, settings_path)
-    df_static_information = df_demographics.merge(df_clinical_information, how='left', on=c.REC_ID_NAME)
-
-    current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
-
-    # Count the number of static features
-    if add_static_data:
-        _, _, selected_columns_fit_static, _, _ = preprocess_static_data(df_static_information, X_train, X_train,
-                                                                         threshold_correlation=0.85)
-
-        num_static_features = len(selected_columns_fit_static)
-        if not copies:
-            out_file = f'{output_path}/{model_name}_data_trials_feature_{feature_name}_combined_{current_date_and_time}.csv'
-        if copies:
-            out_file = f'{output_path}/{model_name}_data_trials_feature_{feature_name}_combined_copies_{current_date_and_time}.csv'
-
-    if not add_static_data:
-        num_static_features = 0
-        out_file = f'{output_path}/{model_name}_data_trials_feature_{feature_name}_{current_date_and_time}.csv'
-
-    # File to save results
-    of_connection = open(out_file, 'w')
-    writer = csv.writer(of_connection)
-
-    # Write the headers to the file
-    writer.writerow(['loss', 'params', 'train_time'])
-    of_connection.close()
-
-    if model_name == 'tcn' and not add_static_data:
-        objective = ObjectiveTcnFeatureModel(df_signals, df_clinical_information, df_static_information, X_train, X_val,
-                                             feature_name=feature_name, features_to_use=features_to_use,
-                                             out_file=out_file, add_static_data=add_static_data,
-                                             num_static_features=num_static_features)
-
-    if model_name == 'tcn' and add_static_data and not copies:
-        objective = ObjectiveTcnFeatureCombinedModel(df_signals, df_clinical_information, df_static_information,
-                                                     X_train, X_val, feature_name=feature_name,
-                                                     features_to_use=features_to_use, out_file=out_file,
-                                                     add_static_data=add_static_data,
-                                                     num_static_features=num_static_features)
-
-    elif model_name == 'tcn' and add_static_data and copies:
-        objective = ObjectiveTcnFeatureCombinedModelWithCopies(df_signals, df_clinical_information,
-                                                               df_static_information, X_train, X_val,
-                                                               feature_name=feature_name,
-                                                               features_to_use=features_to_use, out_file=out_file,
-                                                               add_static_data=add_static_data,
-                                                               num_static_features=num_static_features)
-
-    elif model_name == 'lstm' and not add_static_data:
-        objective = ObjectiveLSTMFeatureModel(df_signals, df_clinical_information, df_static_information, X_train,
-                                              X_val, feature_name=feature_name, features_to_use=features_to_use,
-                                              out_file=out_file, add_static_data=add_static_data)
-
-    elif model_name == 'lstm' and add_static_data:
-        objective = ObjectiveLSTMFeatureCombinedModel(df_signals, df_clinical_information, df_static_information,
-                                                      X_train, X_val, feature_name=feature_name,
-                                                      features_to_use=features_to_use, add_static_data=add_static_data,
-                                                      num_static_features=num_static_features, out_file=out_file)
-
-    study.optimize(objective, n_trials=n_trials)
-    print(study.best_trial)
-
-    if add_static_data and not copies:
-        joblib.dump(study,
-                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_combined_{current_date_and_time}.pkl')
-
-    if add_static_data and copies:
-        joblib.dump(study,
-                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_combined_copies_{current_date_and_time}.pkl')
-
-    if not add_static_data:
-        joblib.dump(study,
-                    f'{output_path}/hyper_opt_{model_name}_feature_{feature_name}_{current_date_and_time}.pkl')
-
-
 class ObjectiveTcnFeatureModel(object):
     def __init__(self, trial, x_train, x_test, x_train_processed, x_test_processed, y_train_processed,
                  y_test_processed, rec_ids_train_inner, rec_ids_test_inner, rec_ids_train_outer, rec_ids_test_outer,
@@ -4250,9 +4156,9 @@ class ObjectiveTcnFeatureModel(object):
         self.outer_fold = outer_fold
         self.inner_fold = inner_fold
 
-        self.loss = self.calculate_loss(trial)
+        self.auc = self.calculate_auc(trial)
 
-    def calculate_loss(self, trial):
+    def calculate_auc(self, trial):
         params = {
             'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-3),
             'num_hidden_units_per_layer': trial.suggest_int('num_hidden_units_per_layer', 5, 15, 1),
@@ -4321,11 +4227,18 @@ class ObjectiveTcnFeatureModel(object):
         return auc_mean, auc_max
 
 
-def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_static_outer_fold, rec_ids_test_outer,
-                       out_file, outer_fold_i, add_static_data, model_name, feature_name, df_ground_truth):
+def objective_cv_inner(trial, X_train_outer_fold: pd.DataFrame, y_train_outer_fold,
+                       X_train_static_outer_fold: pd.DataFrame, rec_ids_test_outer: List[int], out_file: str,
+                       outer_fold_i: int, add_static_data: bool, model_name: str, feature_name: str,
+                       df_ground_truth: pd.DataFrame):
+    """Perform the inner loop of nested cross-validation for hyperoptimization. In this function
+    the inner fold splits (3 folds) are created and hyperoptimization (optimized for both the auc on the mean
+    prediction over all sub-sequences and max prediction over all sub-sequences) is done on these folds.
+
+    The process of nested cross-validation is further explained here: https://weina.me/nested-cross-validation.
+    """
     groups = np.array(X_train_outer_fold[c.REC_ID_NAME])
     rec_ids_x_train_outer_unique = list(X_train_outer_fold[c.REC_ID_NAME].unique())
-    loss_scores = []
     auc_mean_scores = []
     auc_max_scores = []
 
@@ -4333,8 +4246,6 @@ def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_st
     for inner_fold_j, (train_index_inner, test_index_inner) in enumerate(skf_inner_groups.split(X_train_outer_fold,
                                                                                                 y_train_outer_fold,
                                                                                                 groups)):
-
-        print(f"Inner fold {inner_fold_j}")
 
         X_train_signal_inner_fold = X_train_outer_fold.iloc[train_index_inner].copy().reset_index(drop=True)
         X_test_signal_inner_fold = X_train_outer_fold.iloc[test_index_inner].copy().reset_index(drop=True)
@@ -4344,7 +4255,6 @@ def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_st
         pos_cases = y_train_inner_fold['premature'].value_counts()[1]
         neg_cases = y_train_inner_fold['premature'].value_counts()[0]
         pos_weight = neg_cases/pos_cases
-        print(f'pos weight: {pos_weight}')
 
         # We keep the rec ids order to later on merge the static data correctly
         rec_ids_x_train_inner_signal = list(X_train_signal_inner_fold[c.REC_ID_NAME])
@@ -4394,23 +4304,27 @@ def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_st
         if model_name == 'tcn' and not add_static_data:
             features_to_use_static = []
             auc_mean, auc_max = ObjectiveTcnFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
-                                                         X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
+                                                         X_train_signal_inner_fold_processed,
+                                                         X_test_signal_inner_fold_processed,
                                                          y_train_inner_fold_processed, y_test_inner_fold_processed,
                                                          rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
                                                          rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
                                                          feature_name, num_sub_sequences_fixed, features_to_use,
-                                                         features_to_use_static, add_static_data, out_file, outer_fold_i,
-                                                         inner_fold_j).loss
+                                                         features_to_use_static, add_static_data, out_file,
+                                                         outer_fold_i, inner_fold_j).auc
 
         if model_name == 'tcn' and FLAGS.add_static_data and not FLAGS.use_copies_for_static_data:
-            auc_mean, auc_max = ObjectiveTcnFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
-                                                                 X_train_combined_processed, X_test_combined_processed,
-                                                                 y_train_inner_fold_processed, y_test_inner_fold_processed,
-                                                                 rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
+            auc_mean, auc_max = ObjectiveTcnFeatureCombinedModel(trial, X_train_combined_inner_fold,
+                                                                 X_test_combined_inner_fold, X_train_combined_processed,
+                                                                 X_test_combined_processed,
+                                                                 y_train_inner_fold_processed,
+                                                                 y_test_inner_fold_processed,
+                                                                 rec_ids_x_train_inner_unique,
+                                                                 rec_ids_x_test_inner_unique,
                                                                  rec_ids_x_train_outer_unique, rec_ids_test_outer,
                                                                  pos_weight, feature_name, num_sub_sequences_fixed,
                                                                  features_to_use, selected_columns_train_static,
-                                                                 out_file, outer_fold_i, inner_fold_j).loss
+                                                                 out_file, outer_fold_i, inner_fold_j).auc
 
         elif model_name == 'tcn' and FLAGS.add_static_data and FLAGS.use_copies_for_static_data:
             loss = ObjectiveTcnFeatureCombinedModelWithCopies(trial, X_train_combined_inner_fold,
@@ -4427,33 +4341,42 @@ def objective_cv_inner(trial, X_train_outer_fold, y_train_outer_fold, X_train_st
             features_to_use_static = []
 
             auc_mean, auc_max = ObjectiveLSTMFeatureModel(trial, X_train_signal_inner_fold, X_test_signal_inner_fold,
-                                                          X_train_signal_inner_fold_processed, X_test_signal_inner_fold_processed,
+                                                          X_train_signal_inner_fold_processed,
+                                                          X_test_signal_inner_fold_processed,
                                                           y_train_inner_fold_processed, y_test_inner_fold_processed,
                                                           rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
                                                           rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
                                                           feature_name, num_sub_sequences_fixed, features_to_use,
-                                                          features_to_use_static, out_file, outer_fold_i, inner_fold_j).loss
+                                                          features_to_use_static, out_file, outer_fold_i,
+                                                          inner_fold_j).auc
 
         elif model_name == 'lstm' and FLAGS.add_static_data:
-            auc_mean, auc_max = ObjectiveLSTMFeatureCombinedModel(trial, X_train_combined_inner_fold, X_test_combined_inner_fold,
+            auc_mean, auc_max = ObjectiveLSTMFeatureCombinedModel(trial, X_train_combined_inner_fold,
+                                                                  X_test_combined_inner_fold,
                                                                   X_train_combined_processed, X_test_combined_processed,
-                                                                  y_train_inner_fold_processed, y_test_inner_fold_processed,
-                                                                  rec_ids_x_train_inner_unique, rec_ids_x_test_inner_unique,
-                                                                  rec_ids_x_train_outer_unique, rec_ids_test_outer, pos_weight,
-                                                                  feature_name, num_sub_sequences_fixed, features_to_use,
-                                                                  selected_columns_train_static, out_file, outer_fold_i,
-                                                                  inner_fold_j).loss
+                                                                  y_train_inner_fold_processed,
+                                                                  y_test_inner_fold_processed,
+                                                                  rec_ids_x_train_inner_unique,
+                                                                  rec_ids_x_test_inner_unique,
+                                                                  rec_ids_x_train_outer_unique, rec_ids_test_outer,
+                                                                  pos_weight, feature_name, num_sub_sequences_fixed,
+                                                                  features_to_use, selected_columns_train_static,
+                                                                  out_file, outer_fold_i, inner_fold_j).auc
 
-        #loss_scores.append(loss)
         auc_mean_scores.append(auc_mean)
         auc_max_scores.append(auc_max)
-
-    #print(f'Inner folds loss scores: {loss_scores}')
 
     return np.mean(auc_mean_scores), np.mean(auc_max_scores)
 
 
 def objective_cv_outer(trial):
+    """Perform nested cross-validation for hyperoptimization. In this function the outer fold splits (5 folds) are
+    created and the cross-validation function for the inner folds will be called. For each of the 5 folds,
+    hyperoptimization will be performed within the inner loop, resulting in 5 distinct optimal hyperparameters (one for
+    each outer fold).
+
+    The process of nested cross-validation is further explained here: https://weina.me/nested-cross-validation
+    """
     # Load dataset from hard disk, this is the filtered signal data
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
 
@@ -4473,7 +4396,6 @@ def objective_cv_outer(trial):
     if FLAGS.add_static_data:
         df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
 
-    loss_scores_outer = []
     auc_mean_outer = []
     auc_max_outer = []
 
@@ -4494,6 +4416,7 @@ def objective_cv_outer(trial):
             X_train_static_outer_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].isin(rec_ids_x_train_outer_unique)].copy().reset_index(drop=True)
             X_test_static_outer_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].isin(rec_ids_x_test_outer_unique)].copy().reset_index(drop=True)
 
+            # Safety checks
             assert all(x == y for x, y in zip(X_train_signal_outer_fold[c.REC_ID_NAME].unique(),
                                               X_train_static_outer_fold[c.REC_ID_NAME].unique())), \
                 "Rec ids in X_train_signal and X_train_static must be in the exact same order!"
@@ -4511,21 +4434,19 @@ def objective_cv_outer(trial):
         else:
             X_train_static_outer_fold = None
 
-        auc_mean_scores, auc_max_scores = objective_cv_inner(trial, X_train_signal_outer_fold, y_train_outer_fold, X_train_static_outer_fold,
-                                         rec_ids_x_test_outer_unique, out_file, outer_fold_i, FLAGS.add_static_data,
-                                         FLAGS.model, FLAGS.feature_name, ground_truth_rec_id_and_label)
+        auc_mean_scores, auc_max_scores = objective_cv_inner(trial, X_train_signal_outer_fold, y_train_outer_fold,
+                                                             X_train_static_outer_fold, rec_ids_x_test_outer_unique,
+                                                             out_file, outer_fold_i, FLAGS.add_static_data, FLAGS.model,
+                                                             FLAGS.feature_name, ground_truth_rec_id_and_label)
 
-        #loss_scores_outer.append(loss_scores)
         auc_mean_outer.append(auc_mean_scores)
         auc_max_outer.append(auc_max_scores)
-
-    #print(f'Outer folds loss scores: {loss_scores_outer}')
 
     return np.mean(auc_mean_outer), np.mean(auc_max_outer)
 
 
-def main2(model_name: str, feature_name: str, study, add_static_data: bool, copies: bool,
-          output_path: str, n_trials: int):
+def main(model_name: str, feature_name: str, study, add_static_data: bool, copies: bool,
+         output_path: str, n_trials: int):
 
     # File to save results
     of_connection = open(out_file, 'w')
@@ -4562,7 +4483,8 @@ if __name__ == "__main__":
 
     # Command line arguments
     parser = argparse.ArgumentParser(description='Hyperoptimization based on Bayesian Optimization using the Optuna '
-                                                 'package. Hyperparameter spaces are defined in the '
+                                                 'package. Hyperoptimization is done through a nested cross-validation '
+                                                 'method. Hyperparameter spaces are defined in the '
                                                  'ObjectiveLSTMFeatureCombinedModel, '
                                                  'ObjectiveTcnFeatureCombinedModelWithCopies, '
                                                  'ObjectiveTcnFeatureCombinedModel, ObjectiveTcnFeatureModel and '
@@ -4616,8 +4538,7 @@ if __name__ == "__main__":
                              "is used.")
     parser.set_defaults(use_copies_for_static_data=False)
 
-    parser.add_argument('--new_study', action='store_true',
-                        required=('--existing_study' not in sys.argv),
+    parser.add_argument('--new_study', action='store_true', required=('--existing_study' not in sys.argv),
                         help="Use this flag if you want to create a new study to do hyperparameter optimization. "
                              "Use either the --new_study or --existing_study flag.")
     parser.add_argument('--existing_study', dest='new_study', action='store_false',
@@ -4653,5 +4574,5 @@ if __name__ == "__main__":
     if not FLAGS.add_static_data:
         out_file = f'{output_path}/{FLAGS.model}_data_trials_feature_{FLAGS.feature_name}_{current_date_and_time}.csv'
 
-    main2(FLAGS.model, FLAGS.feature_name, study, FLAGS.add_static_data,
-          FLAGS.use_copies_for_static_data, output_path, FLAGS.n_trials)
+    main(FLAGS.model, FLAGS.feature_name, study, FLAGS.add_static_data, FLAGS.use_copies_for_static_data,
+         output_path, FLAGS.n_trials)

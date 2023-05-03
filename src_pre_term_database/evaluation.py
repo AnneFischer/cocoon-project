@@ -5,17 +5,15 @@ from src_pre_term_database.optimization import OptimizationTCNFeatureSequence, \
     OptimizationTCNFeatureSequenceCombinedCopies
 from src_pre_term_database.modeling import TCN, LSTMStatefulClassificationFeatureSequence, \
     LSTMCombinedModel, TCNCombinedModel, TCNCombinedModelCopies
-from src_pre_term_database.load_dataset import build_clinical_information_dataframe, build_demographics_dataframe
-from src_pre_term_database.data_processing_and_feature_engineering import train_val_test_split, \
-    preprocess_static_data, add_static_data_to_signal_data, \
-    basic_preprocessing_static_data, basic_preprocessing_signal_data, generate_dataloader, preprocess_signal_data, \
-    feature_label_split
+from src_pre_term_database.load_dataset import build_clinical_information_dataframe
+from src_pre_term_database.data_processing_and_feature_engineering import preprocess_static_data, \
+    add_static_data_to_signal_data, basic_preprocessing_static_data, basic_preprocessing_signal_data, \
+    generate_dataloader, preprocess_signal_data, feature_label_split
 from src_pre_term_database.utils import read_settings
-from src_pre_term_database.final_train import get_best_params, get_best_params_comb_model
+from src_pre_term_database.final_train import get_best_params
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.preprocessing import LabelEncoder
 from typing import List, Dict, Union
 import constants as c
 import numpy as np
@@ -32,6 +30,7 @@ settings_path = os.path.abspath("references/settings")
 file_paths = read_settings(settings_path, 'file_paths')
 data_path = file_paths['data_path']
 
+# This dict needs to be manually filled with the correct optional model parts
 optional_model_dict = {
     "lstm_sample_entropy_with_static_data_fold_0":
         {'optional_model': nn.Sequential(nn.BatchNorm1d(30, eps=1e-05, momentum=0.1, affine=True,
@@ -106,13 +105,15 @@ optional_model_dict = {
     "tcn_peak_frequency_with_static_data_fold_3":
         {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=14, bias=True), nn.ReLU())},
     "tcn_peak_frequency_with_static_data_fold_4":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU(), nn.Linear(in_features=29, out_features=14, bias=True), nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_0": {'optional_model': nn.Sequential(nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_1":
         {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=25, out_features=15, bias=True), nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_2":
-            {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), nn.ReLU())},
+            {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                            track_running_stats=True), nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_3": {'optional_model': nn.Sequential(nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_4": {'optional_model': nn.Sequential(nn.ReLU())}
 }
@@ -172,13 +173,14 @@ def calculate_auc_ap_second_largest_values(df_interval_preds: pd.DataFrame, df_i
     return results_dict
 
 
-def evaluate_tcn_feature_sequence(x_test, x_test_processed, y_test_processed, num_sub_sequences, rec_ids_test_unique,
+def evaluate_tcn_feature_sequence(x_test, x_test_processed, y_test_processed, num_sub_sequences: int,
+                                  rec_ids_test_unique: List[int],
                                   pos_weight: float, best_params: Dict, features_to_use: List[str],
                                   features_to_use_static: List[str], num_static_features: int, output_path: str,
                                   trained_model_file_name: str):
 
-    test_loader_list, rec_ids_test = generate_dataloader(x_test, x_test_processed, y_test_processed,
-                                                         features_to_use, features_to_use_static, rec_ids_test_unique,
+    test_loader_list, rec_ids_test = generate_dataloader(x_test, x_test_processed, y_test_processed, features_to_use,
+                                                         features_to_use_static, rec_ids_test_unique,
                                                          FLAGS.reduced_seq_length, FLAGS.sub_seq_length,
                                                          num_sub_sequences, best_params['batch_size'], test_phase=True)
 
@@ -252,7 +254,8 @@ def evaluate_tcn_feature_sequence(x_test, x_test_processed, y_test_processed, nu
     return all_test_preds, all_test_probs, rec_ids_test, results_dict, df_interval_tcn_probs, num_trainable_params
 
 
-def evaluate_lstm_feature_sequence(x_test, x_test_processed, y_test_processed, num_sub_sequences, rec_ids_test_unique,
+def evaluate_lstm_feature_sequence(x_test, x_test_processed, y_test_processed, num_sub_sequences: int,
+                                   rec_ids_test_unique: List[int],
                                    pos_weight: float, best_params: Dict, features_to_use: List[str],
                                    features_to_use_static: List[str], num_static_features: int,
                                    output_path: str, trained_model_file_name: str):
@@ -393,17 +396,25 @@ def create_interval_matrix(all_test_results: List, rec_ids_test: List[int], num_
 
 
 def cross_validation_evaluation_baseline_model():
+    """Apply cross validation on only the static data using a simple logistic regression model (without any form of
+    hyperoptimization). The exact same splits on the dataset as with the TCN and LSTM models will be used.
+
+    The mean/std AUC and AP over all folds will be printed.
+    """
     df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
     df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
 
     auc_scores = []
     ap_scores = []
 
-    for outer_fold_i in range(FLAGS.n_folds):
-        _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params_comb_model(FLAGS.hyperoptimization_file_name,
-                                                                                          outer_fold_i=outer_fold_i)
+    # No hyperparameter optimization was done for the static data baseline, but this is just so we can obtain
+    # the correct train and test rec_ids for the corresponding fold that was used for the other models.
+    path_to_optimal_params = f'{hyperopt_path}/{FLAGS.hyperoptimization_file_name}'
 
-        print(f'fold: {outer_fold_i}')
+    for outer_fold_i in range(FLAGS.n_folds):
+        _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(path_to_optimal_params,
+                                                                               outer_fold_i=outer_fold_i,
+                                                                               add_static_data=FLAGS.add_static_data)
 
         X_train_static_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].
             isin(rec_ids_train_outer_fold)].copy().reset_index(drop=True)
@@ -413,15 +424,11 @@ def cross_validation_evaluation_baseline_model():
         pos_cases = X_train_static_fold['premature'].value_counts()[1]
         neg_cases = X_train_static_fold['premature'].value_counts()[0]
         pos_weight = neg_cases / pos_cases
-        print(f'pos weight: {pos_weight}')
 
         x_arr_static_train, y_arr_static_train, selected_columns_train_static, rec_id_list_static_train = preprocess_static_data(
             X_train_static_fold,
             X_train_static_fold,
             threshold_correlation=0.85)
-
-        num_static_features = len(selected_columns_train_static)
-        print(f'Num static features: {num_static_features}')
 
         x_arr_static_test, y_arr_static_test, selected_columns_test_static, rec_id_list_static_test = preprocess_static_data(
             X_train_static_fold,
@@ -448,7 +455,32 @@ def cross_validation_evaluation_baseline_model():
     print(f'Std AUC score: {np.std(auc_scores)}')
 
 
-def cross_validation_evaluation(model_name):
+def cross_validation_evaluation(model_name: str):
+    """Evaluate the cross validation models. For each fold, the corresponding train and test data will be selected
+    along with the model that has been trained on the train data of that specific fold. The following results will
+    be saved:
+
+    - Mean AUC over all folds using mean prob over all subsequences
+    - STD AUC over all folds using mean prob over all subsequences
+
+    - Mean AP over all folds using mean prob over all subsequences
+    - Std AP over all folds using mean prob over all subsequences
+
+    - Mean AUC over all folds using max prob over all subsequences
+    - Std AUC over all folds using max prob over all subsequences
+
+    - Mean AP over all folds using max prob over all subsequences
+    - Std AP over all folds using max prob over all subsequences
+
+    - The probability prediction over each sub-sequence of each rec_id.
+
+    And also the range of trainable parameters of each model will be printed.
+
+    Parameters
+    ----------
+    model_name : str
+        Name of the model which you want to evaluate. Either 'lstm' or 'tcn'.
+    """
     # Load dataset from hard disk
     # Original signal data
     df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
@@ -472,18 +504,28 @@ def cross_validation_evaluation(model_name):
     df_interval_probs = pd.DataFrame()
     num_trainable_params_list = []
 
+    path_to_optimal_params = f'{hyperopt_path}/{FLAGS.hyperoptimization_file_name}'
+
     for outer_fold_i in range(FLAGS.n_folds):
         if FLAGS.add_static_data:
             best_params_model_name_fold = f'{FLAGS.model}_{FLAGS.feature_name}_with_static_data_fold_{outer_fold_i}'
 
-            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params_comb_model(FLAGS.hyperoptimization_file_name,
-                                                                                              outer_fold_i=outer_fold_i)
+            # These rec_ids will be used to make sure that we use the exact same rec_ids for training and the exact
+            # same rec_ids for testing as was done during hyperparameter optimization. So we do not have information
+            # leakage
+            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(path_to_optimal_params,
+                                                                                   outer_fold_i=outer_fold_i,
+                                                                                   add_static_data=FLAGS.add_static_data)
 
         elif not FLAGS.add_static_data:
             best_params_model_name_fold = f'{FLAGS.model}_{FLAGS.feature_name}_fold_{outer_fold_i}'
 
-            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(FLAGS.hyperoptimization_file_name,
-                                                                                   outer_fold_i=outer_fold_i)
+            # These rec_ids will be used to make sure that we use the exact same rec_ids for training and the exact
+            # same rec_ids for testing as was done during hyperparameter optimization. So we do not have information
+            # leakage
+            _, rec_ids_train_outer_fold, rec_ids_test_outer_fold = get_best_params(path_to_optimal_params,
+                                                                                   outer_fold_i=outer_fold_i,
+                                                                                   add_static_data=FLAGS.add_static_data)
 
         best_params: dict = read_settings(settings_path, 'best_params')
         best_params = best_params[best_params_model_name_fold]
@@ -491,9 +533,6 @@ def cross_validation_evaluation(model_name):
         # If static data is added to the model, add the optional model part to the best_params dict
         if FLAGS.add_static_data:
             best_params.update(optional_model_dict[best_params_model_name_fold])
-
-        print(best_params)
-        print(f'fold: {outer_fold_i}')
 
         final_model: dict = read_settings(settings_path, 'final_models')
         trained_model_file_name = final_model[best_params_model_name_fold]
@@ -509,7 +548,6 @@ def cross_validation_evaluation(model_name):
         pos_cases = y_train_fold['premature'].value_counts()[1]
         neg_cases = y_train_fold['premature'].value_counts()[0]
         pos_weight = neg_cases / pos_cases
-        print(f'pos weight: {pos_weight}')
 
         # We keep the rec ids order to later on merge the static data correctly
         rec_ids_x_train_signal = list(X_train_signal_fold[c.REC_ID_NAME])
@@ -524,6 +562,7 @@ def cross_validation_evaluation(model_name):
             X_test_static_fold = df_static_information.loc[df_static_information[c.REC_ID_NAME].
                 isin(rec_ids_test_outer_fold)].copy().reset_index(drop=True)
 
+            # Safety checks
             assert all(x == y for x, y in zip(X_train_signal_fold[c.REC_ID_NAME].unique(),
                                               X_train_static_fold[c.REC_ID_NAME].unique())), \
                 "Rec ids in X_train_signal and X_train_static must be in the exact same order!"
@@ -599,7 +638,6 @@ def cross_validation_evaluation(model_name):
                 f.write("%s, %s\n" % (key, results_dict[key]))
 
         print(f'Results are saved at: {evaluation_results_path}/{best_params_model_name_fold}_results_{current_date_and_time}.csv')
-        print(f'All test probs: {all_test_probs}')
 
         num_trainable_params_list.append(num_trainable_params)
 
@@ -645,65 +683,9 @@ def cross_validation_evaluation(model_name):
     print(f'AP max prob std over all folds: {np.std(ap_max_prob_list)}')
 
 
-def main(trained_model_file_name: Union[str, Dict], features_to_use: List[str], best_params: Dict, output_path: str):
-    df_signals_new = pd.read_csv(f'{data_path}/df_signals_filt.csv', sep=';')
-
-    df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
-    df_signals = df_signals_new.merge(df_clinical_information[[c.REC_ID_NAME, 'premature']],
-                                      how='left', on=c.REC_ID_NAME)
-
-    df_demographics = build_demographics_dataframe(data_path, settings_path)
-    df_static_information = df_demographics.merge(df_clinical_information, how='left', on=c.REC_ID_NAME)
-
-    # Assign 0 to non-premature cases and assign 1 to premature cases
-    lb = LabelEncoder()
-    df_signals['premature'] = lb.fit_transform(df_signals['premature'])
-
-    X_train, X_val, X_test, _, _, _ = train_val_test_split(df_clinical_information, 'premature', test_ratio=0.2,
-                                                           shuffle=True, random_state=0)
-
-    X_train_val = pd.concat([X_train, X_val], axis=0).reset_index(drop=True)
-
-    # Count the number of static features
-    if FLAGS.add_static_data:
-        _, _, selected_columns_fit_static, _, _ = preprocess_static_data(df_static_information, X_train, X_train,
-                                                                         threshold_correlation=0.85)
-
-        num_static_features = len(selected_columns_fit_static)
-
-    if not FLAGS.add_static_data:
-        num_static_features = 0
-
-    if FLAGS.model == 'tcn':
-        all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_tcn_feature_sequence(df_signals,
-                                                                                                   df_clinical_information,
-                                                                                                   df_static_information,
-                                                                                                   X_train_val, X_test,
-                                                                                                   trained_model_file_name,
-                                                                                                   features_to_use,
-                                                                                                   best_params,
-                                                                                                   add_static_data=FLAGS.add_static_data,
-                                                                                                   copies=FLAGS.use_copies_for_static_data,
-                                                                                                   num_static_features=num_static_features,
-                                                                                                   output_path=output_path)
-
-    elif FLAGS.model == 'lstm':
-        all_test_preds, all_test_probs, rec_ids_test, results_dict = evaluate_lstm_feature_sequence(df_signals,
-                                                                                                    df_clinical_information,
-                                                                                                    df_static_information,
-                                                                                                    X_train_val, X_test,
-                                                                                                    trained_model_file_name,
-                                                                                                    features_to_use,
-                                                                                                    best_params,
-                                                                                                    add_static_data=FLAGS.add_static_data,
-                                                                                                    num_static_features=num_static_features,
-                                                                                                    output_path=output_path)
-
-    return all_test_preds, all_test_probs, rec_ids_test, results_dict
-
-
 if __name__ == "__main__":
     out_path_model = os.path.abspath("trained_models")
+    hyperopt_path = os.path.abspath("hyperparameters")
 
     if not os.path.isdir(out_path_model):
         os.mkdir(out_path_model)
@@ -717,25 +699,29 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluate the final model on test set using the final trained model'
                                                  'that is obtained after running final_train.py. The performance is'
                                                  'given in terms of AUC and AP. The optimal hyperparameters have to be '
-                                                 'put in the best_params.json file and the optional_model part has to '
-                                                 'be put in the optional_model_dict and bidirectional_lstm_dict, which '
-                                                 'are placed at the top of this evaluation.py file. The name of your '
-                                                 'final model has to be specified in the final_models.json file and at '
-                                                 'the top of this main function you can specify in which folder your '
-                                                 'final model is saved.')
+                                                 'put in the best_params.json file (these will automatically be saved'
+                                                 'there after running final_train.py) and the optional_model part '
+                                                 '(which is obtained if you have a model on both EHG+static data) has '
+                                                 'to be put in the optional_model_dict and bidirectional_lstm_dict, '
+                                                 'which are placed at the top of this evaluation.py file. The name of '
+                                                 'your final models has to be specified in the final_models.json file '
+                                                 'and at the top of this main function you can specify in which '
+                                                 'folder your final model is saved.')
 
-    parser.add_argument('--model', type=str, required=True,
-                        help="Select what model to use: 'lstm' or 'tcn'",
+    parser.add_argument('--model', type=str, required=True, help="Select what model to use: 'lstm' or 'tcn'",
                         choices=['tcn', 'lstm'])
 
     parser.add_argument('--feature_name', type=str, required=True,
                         help="Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or "
-                             "'median_frequency'",
-                        choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
+                             "'median_frequency'", choices=['sample_entropy', 'peak_frequency', 'median_frequency'])
 
-    parser.add_argument('--hyperoptimization_file_name', type=str, required=True)
+    parser.add_argument('--hyperoptimization_file_name', type=str, required=True,
+                        help="Name of the file with the results of the hyperoptimization run. This file needs to be "
+                             "placed in the 'hyperparameters' folder. The best params for each model are already "
+                             "provided in the `best_params.json` file.")
 
-    parser.add_argument('--n_folds', type=int, required=True)
+    parser.add_argument('--n_folds', type=int, default=5, required=True,
+                        help="Number of outer folds used. Default is 5.")
 
     parser.add_argument('--reduced_seq_length', type=int, required=True, default=50,
                         help="The time window length of which you want to calculate feature_name on each time step."
@@ -778,11 +764,9 @@ if __name__ == "__main__":
     parser.set_defaults(use_copies_for_static_data=False)
 
     # Make a dependency such that it is required to have either the --baseline or the --no_baseline flag
-    parser.add_argument('--baseline', action='store_true',
-                        required=('--no_baseline' not in sys.argv),
+    parser.add_argument('--baseline', action='store_true', required=('--no_baseline' not in sys.argv),
                         help="Calculate performance of logistic regression baseline on static data")
-    parser.add_argument('--no_baseline', dest='baseline', action='store_false',
-                        required=('--baseline' not in sys.argv),
+    parser.add_argument('--no_baseline', dest='baseline', action='store_false', required=('--baseline' not in sys.argv),
                         help="Run normal evaluation.")
     parser.set_defaults(add_static_data=True)
 
@@ -800,6 +784,5 @@ if __name__ == "__main__":
 
     if FLAGS.baseline:
         cross_validation_evaluation_baseline_model()
-
     else:
         cross_validation_evaluation(FLAGS.model)
