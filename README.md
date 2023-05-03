@@ -40,7 +40,7 @@ Running this file may take a couple of minutes and the resulting file will be sa
 
 ## Step 2: Evaluation
 
-The final trained models are provided in the `trained_models` folder. The final models are evaluated on the test set and performance is given in terms of AUC and AP. The optimal hyperparameters are provided in the `best_params.json` file and the optional_model part (when EHG data and clinical data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `evaluation.py` file. The name of your final model has to be specified in the `final_models.json` file. 
+The final trained models are provided in the `trained_models` folder. We performed nested cross-validation to obtain a more robust performance estimate. In total, there are 5 separate models, all trained on 1 of the 5 folds, for each model type (e.g. a TCN model using peak frequency as data reduction method on only EHG data is 1 model type), and there are 12 model types. The final models are evaluated on the test set of a specific fold and performance is given in terms of mean AUC and AP over the 5 folds. The optimal hyperparameters are provided in the `best_params.json` file and are based on the csv files which contain the results of the hyperoptimization runs in the `hyperparameter` folder. The optional_model part (when EHG data and clinical data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `evaluation.py` file. The name of your final models has to be specified in the `final_models.json` file. 
 
 Usage:
 
@@ -51,8 +51,8 @@ Usage:
                         Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or 'median_frequency'
                         
   --hyperoptimization_file_name   
-                        Name of the file with the results of the hyperoptimization run. The best params for each model are already 
-                        provided in the `best_params.json` file.
+                        Name of the file with the results of the hyperoptimization run. The best params for each model are currently 
+                        already provided in the `best_params.json` file.
                         
   --n_folds             Number of outer folds used. Default is 5.
   
@@ -93,7 +93,7 @@ python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_
 
 ## Step 3 (optional): Re-run hyperoptimization
 
-You can re-run hyperoptimization for all models. Hyperoptimization is based on Bayesian Optimization using the Optuna package. Hyperparameter spaces are defined in the following classes which are declared in the `optimization.py` file: 
+You can re-run hyperoptimization for all model types. Hyperoptimization is based on Bayesian Optimization using the Optuna package and is done using nested hyperoptimization. Hyperparameter spaces are defined in the following classes which are declared in the `optimization.py` file: 
 
 - `ObjectiveLSTMFeatureCombinedModel` (EHG data + static data)
 - `ObjectiveTcnFeatureCombinedModelWithCopies` (EHG data + static data treated as time series)
@@ -157,9 +157,9 @@ python ./src_pre_term_database/optimization.py --model 'tcn' --feature_name 'pea
 
 ## Step 4 (optional): Train final model using the optimal hyperparameters obtained in step 3
 
-You should hard-copy the optimal hyperparameters you've obtained in step 3 in the `best_params.json` file and the optional_model part (when EHG data and static data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `final_train.py` file. 
+You should put the csv file with the results of the hyperparameters you've obtained in step 3 in the `hyperparameters` folder. The optional_model part (when EHG data and static data are combined) has to be hard copied in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `final_train.py` file. You'll also have to hard copy this in the evaluation.py file if you want to evaluate your final models.
 
-The final model will be saved in the `trained_models` folder. After running `final_train.py` you have to put the name of your final model in the `final_models.json` file and then you can run `evaluation.py` (see step 1 for explanation on usage) to evaluate your results.
+The final models will be saved in the `trained_models` folder and the best hyperparameters for each mofel type and fold will be saved in the `best_params.json` file. After running `final_train.py` you have to put the name of your final model in the `final_models.json` file and then you can run `evaluation.py` (see step 1 for explanation on usage) to evaluate your results.
 
 Example usage `final_train.py`:
 
