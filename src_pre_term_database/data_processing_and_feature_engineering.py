@@ -12,7 +12,7 @@ import sklearn
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.compose import ColumnTransformer, make_column_selector
+from sklearn.compose import ColumnTransformer
 from utils import remove_correlated_columns, replace_na_with_zero, replace_inf_with_zero
 import random
 from src_pre_term_database.load_dataset import build_demographics_dataframe
@@ -467,8 +467,6 @@ def preprocess_static_data(x_data_to_be_fitted: pd.DataFrame,
 
     Parameters
     ----------
-    df_static_information : pd.DataFrame
-        Dataframe containing the static data of each rec id.
     x_data_to_be_fitted : pd.DataFrame
         Dataframe that contains the train data. This data will be used to standard scale the data and will be applied
         on x_data_to_be_transformed.
@@ -480,20 +478,13 @@ def preprocess_static_data(x_data_to_be_fitted: pd.DataFrame,
         correlation is > threshold_correlation. Default is 85%.
     Returns
     -------
-    X_arr_static, y_arr_static, selected_columns, rec_id_list_fit, rec_id_list_transform : Tuple[np.array, np.array,
-    List[str], List[int], List[int]]
+    X_arr_static, y_arr_static, selected_columns, rec_id_list_transform : Tuple[np.array, np.array,
+    List[str], List[int]]
         X array with the preprocessed features and y array with the preprocessed labels.
         List with the feature names after preprocessing and the list of rec_ids present in
-        the x fit array and x transform array.
+        the x transform array.
     """
-    # This df contains the static data
-    # x_fit_static = df_static_information[df_static_information[c.REC_ID_NAME].isin(x_data_to_be_fitted[c.REC_ID_NAME].unique())] \
-    #     .reset_index(drop=True).copy()
-    # x_transform_static = df_static_information[df_static_information[c.REC_ID_NAME].isin(x_data_to_be_transformed[c.REC_ID_NAME].unique())] \
-    #     .reset_index(drop=True).copy()
-
     # Keep the list of rec ids present as we want to know which data belongs to a certain id
-    #rec_id_list_fit = x_data_to_be_fitted[c.REC_ID_NAME].unique()
     rec_id_list_transform = x_data_to_be_transformed[c.REC_ID_NAME].unique()
 
     # We need to this step because the X dataframe now contain the label column ('premature')
@@ -565,7 +556,32 @@ def preprocess_static_data(x_data_to_be_fitted: pd.DataFrame,
     return x_transformed_arr_static, y_transformed_arr_static, selected_columns, rec_id_list_transform
 
 
-def preprocess_signal_data(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train, y_test, features_to_use: List[str]):
+def preprocess_signal_data(x_train: pd.DataFrame, x_test: pd.DataFrame, y_train,
+                           y_test, features_to_use: List[str]) -> Tuple[np.array, np.array, np.array, np.array]:
+    """Preprocess the signal data.
+
+    - Standard scale x_train data and then apply this on x_test.
+    - Apply label encoder on y_train and y_test.
+    - Remove the rec_id column.
+
+    Parameters
+    ----------
+    x_train : pd.DataFrame
+        Dataframe that contains the train data. This data will be used to standard scale the data and will be applied
+        on x_test.
+    x_test : pd.DataFrame
+        Dataframe that contains the data that needs to be transformed.
+    y_train
+        Labels of x_train. These will be label encoded.
+    y_test
+        Labels of x_test. These will be label encoded.
+    features_to_use : List[str]
+        List containing the features you want to preprocess.
+    Returns
+    -------
+    x_arr_train, x_arr_test, y_arr_train, y_arr_test : Tuple[np.array, np.array, np.array, np.array]
+        X array with the preprocessed features and y array with the preprocessed labels.
+    """
     # Drop the rec_id column from the X dataframe
     column_drop_pipeline = Pipeline([("columnDropper", ColumnDropperTransformer([c.REC_ID_NAME]))])
 
@@ -1306,8 +1322,39 @@ def custom_calculate_feature_over_fixed_time_window(trial, params: Dict, df_sign
     return custom_loader_feature
 
 
-def basic_preprocessing_signal_data(df_signals, df_clinical_information, reduced_seq_length, features_to_use, feature_name, fs):
-    # This dataframe contains calculated features (e.g., peak frequency) over the original signal data
+def basic_preprocessing_signal_data(df_signals: pd.DataFrame, df_clinical_information: pd.DataFrame,
+                                    reduced_seq_length: int, features_to_use: List[str], feature_name: str,
+                                    fs: int) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Do some basic preprocess of the signal data.
+
+    - Calculate features (e.g., peak frequency) over the original signal data by using reduced_seq_length as time
+    window length of which you want to calculate feature_name (e.g. peak frequency) on each time step.
+
+    - Add label (premature/non premature) to the calculated signal data.
+
+    Parameters
+    ----------
+    df_signals : pd.DataFrame
+        Dataframe that contains the original signal data, after filtering of the correct bandwidth and removing
+        the first and last 3 minutes because of transient effect of the filtering.
+    df_clinical_information : pd.DataFrame
+        Dataframe that contains the label data (premature/non premature).
+    reduced_seq_length : int
+        The time window length of which you want to calculate feature_name on each time step. For example, if
+        reduced_seq_length is 50 and feature_name is sample entropy, then you'll end up with 50 values of the
+        sample entropy which are calculated over non-overlapping time windows from df_signals. Default is 50.
+    features_to_use : List[str]
+        Labels of x_test. These will be label encoded.
+    feature_name : str
+        Feature to use for data reduction: 'sample_entropy', 'peak_frequency' or 'median_frequency'
+    fs : int
+        Sampling frequency of the signal data.
+    Returns
+    -------
+    df_features, df_label : Tuple[pd.DataFrame, pd.DataFrame]
+        Dataframe with the calculated features signal data and dataframe with the label data.
+    """
+    # This dataframe will contain the calculated features (e.g., peak frequency) over the original signal data
     df_features = calculate_feature_over_fixed_time_window(df_signals,
                                                            fixed_seq_length=reduced_seq_length,
                                                            column_list=features_to_use,
@@ -1329,8 +1376,23 @@ def basic_preprocessing_signal_data(df_signals, df_clinical_information, reduced
     return df_features, df_label
 
 
+def one_hot_encode_static_data(data_path: str, settings_path: str,
+                               df_clinical_information: pd.DataFrame) -> pd.DataFrame:
+    """One-hot encode the categorical variables of the static data.
 
-def basic_preprocessing_static_data(data_path: str, settings_path: str, df_clinical_information: pd.DataFrame):
+    Parameters
+    ----------
+    data_path : str
+        Path where the clinical (or static) data is saved.
+    settings_path : str
+        Path where the settings can be found.
+    df_clinical_information : pd.DataFrame
+        Dataframe that contains the clinical/static data.
+    Returns
+    -------
+    df_static_information : pd.DataFrame
+        Dataframe with the one-hot encoded categorical variables.
+    """
     lb = LabelEncoder()
     df_demographics = build_demographics_dataframe(data_path, settings_path)
     df_static_information = df_demographics.merge(df_clinical_information, how='left', on=c.REC_ID_NAME)
@@ -1442,9 +1504,48 @@ def add_static_data_to_signal_data(X_train_static: pd.DataFrame, X_test_static: 
            selected_columns_train_static
 
 
-def generate_dataloader(x_feature, x_preprocessed, y_preprocessed, features_to_use, features_to_use_static, rec_ids,
-                        reduced_seq_length, sub_seq_length, num_sub_sequences, batch_size, test_phase):
+def generate_dataloader(x_feature: pd.DataFrame, x_preprocessed: np.array, y_preprocessed: np.array,
+                        features_to_use: List[str], features_to_use_static: List[str], rec_ids: List[int],
+                        reduced_seq_length: int, sub_seq_length: int, num_sub_sequences: int,
+                        batch_size: int, test_phase: bool):
+    """Generate data loader from x_preprocessed with batch_size samples in the dataloader.
 
+    Parameters
+    ----------
+    x_feature : pd.DataFrame
+        Dataframe that contains the unprocessed feature data.
+    x_preprocessed : np.array
+        Preprocessed feature data.
+    y_preprocessed : np.array
+        Array containing the target variable 'premature', which has been preprocessed with a label encoder.
+    features_to_use : List[str]
+        List of the signal features you want to use.
+    features_to_use_static : List[str]
+        List of the static features you want to use.
+    rec_ids : List[int]
+        List with the rec_ids that are present in x_feature.
+    reduced_seq_length : int
+        The time window length of which feature_name is calculated on each time step.
+        For example, if reduced_seq_length is 50 and feature_name is sample entropy, then in the x_feature dataframe
+        you have 50 values of the sample entropy which are calculated over non-overlapping time windows
+        from the original signal dataframe.
+    sub_seq_length : int
+        The number of time steps you want to use to split reduced_seq_length into. For example, if
+        reduced_seq_length is 50 and sub_seq_length is 10, then you'll have 5 sub-sequences that make up the
+        total reduced_seq_length. A prediction will be made over each sub-sequence. Default is 10.
+    num_sub_sequences : int
+        reduced_seq_length / sub_seq_length
+    batch_size : int
+        Number of samples (rec_ids) you want in a batch.
+    test_phase : bool
+        Whether you want to generate a dataloader with the test data. If the case, then also the
+        rec_ids will be returned.
+
+    Returns
+    -------
+    custom_loader_orig : List[DataLoader(s)]
+        List with the dataloader(s).
+    """
     rec_ids_list = np.repeat(rec_ids, num_sub_sequences)
 
     batch_lengths = np.repeat([sub_seq_length], len(rec_ids) * num_sub_sequences)
@@ -1609,34 +1710,7 @@ def custom_calculate_feature_over_splited_fixed_time_window(trial, params, df_si
     batch_length = pd.concat([pd.DataFrame(rec_ids_list, columns=[c.REC_ID_NAME]),
                               pd.DataFrame(batch_lengths, columns=['batch_timesteps'])], axis=1)
 
-    print(batch_length)
-
     if add_static_data:
-        # The static data will be processed (i.e., standard scaled, removing highly correlated features) and
-        # added to the signals data
-        # x_arr_static_fit, _, selected_columns_fit_static, rec_id_list_static_fit, _ = preprocess_static_data(
-        #     df_static_information,
-        #     x_feature_fit,
-        #     x_feature_fit,
-        #     threshold_correlation=0.85)
-        #
-        # x_arr_static_transform, _, _, _, rec_id_list_static_transform = preprocess_static_data(
-        #     df_static_information,
-        #     x_feature_fit,
-        #     x_feature_transform,
-        #     threshold_correlation=0.85)
-        #
-        # # Safety check if the data consequently processed for the correct order of rec ids
-        # assert np.logical_and((np.array(rec_id_list_static_transform) == np.array(rec_ids_transform)).all(),
-        #                       (np.array(rec_ids_transform) == np.array(x_feature_transform[c.REC_ID_NAME].unique())).all()), \
-        #     f'Rec ids of x_feature_transform inconsequentially sorted during preprocessing!'
-        #
-        # df_static_fit = pd.concat([pd.DataFrame(rec_id_list_static_fit, columns=[c.REC_ID_NAME]),
-        #                            pd.DataFrame(x_arr_static_fit, columns=selected_columns_fit_static)], axis=1)
-        # df_static_transform = pd.concat([pd.DataFrame(rec_id_list_static_transform, columns=[c.REC_ID_NAME]),
-        #                                  pd.DataFrame(x_arr_static_transform, columns=selected_columns_fit_static)],
-        #                                 axis=1)
-
         x_feature_fit = x_feature_fit.merge(df_static_train, on=c.REC_ID_NAME).reset_index(drop=True)
         x_feature_transform = x_feature_transform.merge(df_static_test, on=c.REC_ID_NAME).reset_index(drop=True)
 
@@ -2158,13 +2232,12 @@ def generate_custom_data_loaders(trial, df_signals: pd.DataFrame, x: pd.DataFram
 
 
 def generate_feature_data_loaders(trial, df_signals: pd.DataFrame, df_clinical_information: pd.DataFrame,
-                                  df_static_information: pd.DataFrame,
-                                  x_data_to_be_fitted: pd.DataFrame, x_data_to_be_transformed: pd.DataFrame,
-                                  x_train_static_data: pd.DataFrame, x_test_static_data: pd.DataFrame,
-                                  selected_columns_static_data: List[str],
+                                  df_static_information: pd.DataFrame, x_data_to_be_fitted: pd.DataFrame,
+                                  x_data_to_be_transformed: pd.DataFrame, x_train_static_data: pd.DataFrame,
+                                  x_test_static_data: pd.DataFrame, selected_columns_static_data: List[str],
                                   params: Dict, columns_to_use: List[str], feature_name: str, reduced_seq_length: int,
-                                  sub_seq_length: int, fs: int, shuffle: bool = True,
-                                  add_static_data: bool = False, test_phase: bool = False) -> List[DataLoader]:
+                                  sub_seq_length: int, fs: int, shuffle: bool = True, add_static_data: bool = False,
+                                  test_phase: bool = False) -> List[DataLoader]:
     """Create data loaders from df_signals with either an equal batch size across all batches
     or unequal batch sizes.
 

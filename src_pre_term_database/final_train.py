@@ -6,8 +6,8 @@ from src_pre_term_database.modeling import TCN, LSTMStatefulClassificationFeatur
     LSTMCombinedModel, TCNCombinedModel, TCNCombinedModelCopies
 from src_pre_term_database.load_dataset import build_clinical_information_dataframe
 from src_pre_term_database.data_processing_and_feature_engineering import preprocess_signal_data, \
-    basic_preprocessing_signal_data, basic_preprocessing_static_data, \
-    add_static_data_to_signal_data, generate_dataloader, feature_label_split
+    basic_preprocessing_signal_data, one_hot_encode_static_data, add_static_data_to_signal_data, generate_dataloader, \
+    feature_label_split
 from src_pre_term_database.utils import read_settings
 import torch
 import torch.nn as nn
@@ -127,9 +127,10 @@ optional_model_dict = {
 }
 
 
-def final_train_lstm_feature_sequence(x_train, x_train_processed, y_train_processed, num_sub_sequences, rec_ids_train,
-                                      pos_weight, best_params: Dict, features_to_use: List[str],
-                                      features_to_use_static: List[str], num_static_features: int, fold_i: int):
+def final_train_lstm_feature_sequence(x_train, x_train_processed, y_train_processed, num_sub_sequences: int,
+                                      rec_ids_train: List[int], pos_weight: np.float, best_params: Dict,
+                                      features_to_use: List[str], features_to_use_static: List[str],
+                                      num_static_features: int, fold_i: int):
 
     train_loader_list = generate_dataloader(x_train, x_train_processed, y_train_processed,
                                             features_to_use, features_to_use_static, rec_ids_train,
@@ -187,9 +188,10 @@ def final_train_lstm_feature_sequence(x_train, x_train_processed, y_train_proces
                              model_optional=best_params['optional_model'], n_epochs=best_params['num_epochs'])
 
 
-def final_train_tcn_feature_sequence(x_train, x_train_processed, y_train_processed, num_sub_sequences, rec_ids_train,
-                                     pos_weight, best_params: Dict, features_to_use: List[str],
-                                     features_to_use_static: List[str], num_static_features: int, fold_i: int):
+def final_train_tcn_feature_sequence(x_train, x_train_processed, y_train_processed, num_sub_sequences: int,
+                                     rec_ids_train: List[int], pos_weight: np.float, best_params: Dict,
+                                     features_to_use: List[str], features_to_use_static: List[str],
+                                     num_static_features: int, fold_i: int):
 
     train_loader_list = generate_dataloader(x_train, x_train_processed, y_train_processed,
                                             features_to_use, features_to_use_static, rec_ids_train,
@@ -277,7 +279,7 @@ def cross_validation_final_train(model_name: str):
     path_to_optimal_params = f'{hyperopt_path}/{FLAGS.hyperoptimization_file_name}'
 
     if FLAGS.add_static_data:
-        df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
+        df_static_information = one_hot_encode_static_data(data_path, settings_path, df_clinical_information)
 
     for outer_fold_i in range(FLAGS.n_folds):
 
@@ -403,7 +405,7 @@ def get_best_params(path_to_optimal_params: str, outer_fold_i: int, add_static_d
     outer_fold_i : int
         Number of the fold.
     add_static_data : bool
-        True or False. Whether or not you want to have the model on only EHG or both EHG + static data.
+        True or False. Whether you want to have the model on only EHG or both EHG + static data.
 
     Returns
     ----------
@@ -490,8 +492,7 @@ if __name__ == "__main__":
                                                  'models in the final_models.json file and then you can run '
                                                  'evaluation.py.')
 
-    parser.add_argument('--model', type=str, required=True,
-                        help="Select what model to use: 'lstm' or 'tcn'",
+    parser.add_argument('--model', type=str, required=True, help="Select what model to use: 'lstm' or 'tcn'",
                         choices=['tcn', 'lstm'])
 
     parser.add_argument('--feature_name', type=str, required=True,
