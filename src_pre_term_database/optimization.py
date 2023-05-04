@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from src_pre_term_database.data_processing_and_feature_engineering import preprocess_signal_data, generate_dataloader, \
-    add_static_data_to_signal_data, basic_preprocessing_static_data, basic_preprocessing_signal_data
+    add_static_data_to_signal_data, one_hot_encode_static_data, basic_preprocessing_signal_data
 from src_pre_term_database.load_dataset import build_clinical_information_dataframe
 import constants as c
 import matplotlib.pyplot as plt
@@ -168,8 +168,6 @@ class OptimizationLSTM:
 
         assert not torch.equal(a.data, b.data)
 
-        print(list(self.model.parameters())[0].grad)
-
         return loss, y_pred
 
     def train(self, train_loader, val_loader, trial, n_epochs=50):
@@ -302,9 +300,6 @@ class OptimizationLSTM:
                 self.test_labels.append(y_test.cpu().data.numpy())
                 self.test_labels = list(np.array(self.test_labels, dtype=np.int64).flat)
                 self.test_predictions = list(np.array(self.test_predictions, dtype=np.int64).flat)
-
-                print(f'Test labels: {self.test_labels}')
-                print(f'Test predictions: {self.test_predictions}')
 
                 num_correct_batch = len([i for i, j in zip(self.test_predictions, self.test_labels) if i == j])
                 print(f'The number of correct predicted samples: {num_correct_batch}/{len(y_test)}')
@@ -688,8 +683,6 @@ class OptimizationCombinedLSTM(OptimizationLSTM):
                                                                                                            train=False,
                                                                                                            val=True,
                                                                                                            test=False)
-                            # self.val_predictions.clear()
-                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -1814,8 +1807,6 @@ class OptimizationStatefulFeatureSequenceLSTM(OptimizationLSTM):
                                                                                                            train=False,
                                                                                                            val=True,
                                                                                                            test=False)
-                            # self.val_predictions.clear()
-                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -2415,7 +2406,6 @@ class OptimizationTCNFeatureSequenceCombinedCopies:
             correct_test, total_samples_test = 0, 0
             for data_loader in test_loader:
                 for t, (x_test, y_test) in enumerate(data_loader):
-
                     # The order in the batch MUST be [batch_size, sequence length, num_features]
                     batch_size_test = x_test.shape[0]
 
@@ -2842,8 +2832,6 @@ class OptimizationTCNFeatureSequenceCombined:
                                                                                                            train=False,
                                                                                                            val=True,
                                                                                                            test=False)
-                            # self.val_predictions.clear()
-                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -3233,7 +3221,6 @@ class OptimizationTCNFeatureSequence:
             self.val_predictions.clear()
             self.final_val_prob.append(mean_prob)
             self.val_probabilities.clear()
-
             self.final_max_val_probabilities.append(max_prob)
 
         elif test:
@@ -3384,8 +3371,6 @@ class OptimizationTCNFeatureSequence:
                                                                                                            train=False,
                                                                                                            val=True,
                                                                                                            test=False)
-                            # self.val_predictions.clear()
-                            # self.val_probabilities.clear()
 
                         # total_val_loss_epoch accumulates the total loss per validation batch for the entire epoch
                         total_val_loss_epoch += (avg_val_batch_loss.item() * batch_size_val)
@@ -3703,16 +3688,18 @@ class ObjectiveLSTMFeatureCombinedModel(object):
 
         start = timer()
 
-        auc_mean_prob, auc_max_prob, params = opt_lstm.train_combined_model(trial, train_loader_list, test_loader_list, self.features_to_use,
-                                                     params, n_epochs=params['num_epochs'])
+        auc_mean_prob, auc_max_prob, params = opt_lstm.train_combined_model(trial, train_loader_list, test_loader_list,
+                                                                            self.features_to_use, params,
+                                                                            n_epochs=params['num_epochs'])
 
         run_time = timer() - start
 
         # Write to the csv file ('a' means append)
         of_connection = open(self.out_file, 'a')
         writer = csv.writer(of_connection)
-        writer.writerow([auc_mean_prob, auc_max_prob, params, self.outer_fold, self.inner_fold, self.rec_ids_train_outer,
-                         self.rec_ids_test_outer, self.rec_ids_train_inner, self.rec_ids_test_inner, run_time])
+        writer.writerow([auc_mean_prob, auc_max_prob, params, self.outer_fold, self.inner_fold,
+                         self.rec_ids_train_outer, self.rec_ids_test_outer, self.rec_ids_train_inner,
+                         self.rec_ids_test_inner, run_time])
         of_connection.close()
 
         return auc_mean_prob, auc_max_prob
@@ -4394,7 +4381,7 @@ def objective_cv_outer(trial):
     ground_truth_rec_id_and_label = pd.concat([df_features[c.REC_ID_NAME], df_label], axis=1)
 
     if FLAGS.add_static_data:
-        df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
+        df_static_information = one_hot_encode_static_data(data_path, settings_path, df_clinical_information)
 
     auc_mean_outer = []
     auc_max_outer = []

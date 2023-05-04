@@ -7,7 +7,7 @@ from src_pre_term_database.modeling import TCN, LSTMStatefulClassificationFeatur
     LSTMCombinedModel, TCNCombinedModel, TCNCombinedModelCopies
 from src_pre_term_database.load_dataset import build_clinical_information_dataframe
 from src_pre_term_database.data_processing_and_feature_engineering import preprocess_static_data, \
-    add_static_data_to_signal_data, basic_preprocessing_static_data, basic_preprocessing_signal_data, \
+    add_static_data_to_signal_data, one_hot_encode_static_data, basic_preprocessing_signal_data, \
     generate_dataloader, preprocess_signal_data, feature_label_split
 from src_pre_term_database.utils import read_settings
 from src_pre_term_database.final_train import get_best_params
@@ -51,48 +51,61 @@ optional_model_dict = {
                                          nn.ReLU(), nn.Linear(in_features=21, out_features=20, bias=True), nn.ReLU())},
 
     "lstm_peak_frequency_with_static_data_fold_0":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(22, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(22, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_peak_frequency_with_static_data_fold_1":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_peak_frequency_with_static_data_fold_2":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_peak_frequency_with_static_data_fold_3":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_peak_frequency_with_static_data_fold_4":
         {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=28, out_features=17, bias=True), nn.ReLU())},
 
     "lstm_median_frequency_with_static_data_fold_0":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_median_frequency_with_static_data_fold_1":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_median_frequency_with_static_data_fold_2":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(25, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_median_frequency_with_static_data_fold_3":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU())},
     "lstm_median_frequency_with_static_data_fold_4":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU(), nn.Linear(in_features=31, out_features=20, bias=True), nn.ReLU())},
     "tcn_sample_entropy_with_static_data_fold_0":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(35, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU(), nn.Linear(in_features=35, out_features=16, bias=True), nn.ReLU())},
     "tcn_sample_entropy_with_static_data_fold_1":
         {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=31, out_features=15, bias=True), nn.ReLU())},
     "tcn_sample_entropy_with_static_data_fold_2":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU(), nn.Linear(in_features=28, out_features=13, bias=True), nn.ReLU())},
     "tcn_sample_entropy_with_static_data_fold_3":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(28, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU(), nn.Linear(in_features=28, out_features=18, bias=True), nn.ReLU())},
     "tcn_sample_entropy_with_static_data_fold_4":
-        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        {'optional_model': nn.Sequential(nn.BatchNorm1d(31, eps=1e-05, momentum=0.1, affine=True,
+                                                        track_running_stats=True),
                                          nn.ReLU(), nn.Linear(in_features=31, out_features=14, bias=True), nn.ReLU())},
 
 
@@ -111,9 +124,11 @@ optional_model_dict = {
     "tcn_median_frequency_with_static_data_fold_0": {'optional_model': nn.Sequential(nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_1":
         {'optional_model': nn.Sequential(nn.ReLU(), nn.Linear(in_features=25, out_features=15, bias=True), nn.ReLU())},
-    "tcn_median_frequency_with_static_data_fold_2":
-            {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05, momentum=0.1, affine=True,
-                                                            track_running_stats=True), nn.ReLU())},
+    "tcn_median_frequency_with_static_data_fold_2": {'optional_model': nn.Sequential(nn.BatchNorm1d(29, eps=1e-05,
+                                                                                                    momentum=0.1,
+                                                                                                    affine=True,
+                                                                                                    track_running_stats=True),
+                                                                                     nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_3": {'optional_model': nn.Sequential(nn.ReLU())},
     "tcn_median_frequency_with_static_data_fold_4": {'optional_model': nn.Sequential(nn.ReLU())}
 }
@@ -402,7 +417,7 @@ def cross_validation_evaluation_baseline_model():
     The mean/std AUC and AP over all folds will be printed.
     """
     df_clinical_information = build_clinical_information_dataframe(data_path, settings_path)
-    df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
+    df_static_information = one_hot_encode_static_data(data_path, settings_path, df_clinical_information)
 
     auc_scores = []
     ap_scores = []
@@ -497,7 +512,7 @@ def cross_validation_evaluation(model_name: str):
     num_sub_sequences_fixed = int(FLAGS.reduced_seq_length / FLAGS.sub_seq_length)
 
     if FLAGS.add_static_data:
-        df_static_information = basic_preprocessing_static_data(data_path, settings_path, df_clinical_information)
+        df_static_information = one_hot_encode_static_data(data_path, settings_path, df_clinical_information)
 
     current_date_and_time = "{:%Y-%m-%d_%H-%M}".format(datetime.datetime.now())
 
