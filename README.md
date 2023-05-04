@@ -1,5 +1,5 @@
 # cocoon-project
-Repo for preterm birth prediction using machine learning.
+Repo for preterm birth prediction using machine learning. This repo was used for the paper 'End-to-end learning with interpretation on electrohysterography data to predict preterm birth', which can be found here: https://www.sciencedirect.com/science/article/pii/S0010482523003116?dgcid=author
 
 Download this repo by running: ```git clone https://github.com/AnneFischer/cocoon-project```.
 
@@ -40,7 +40,7 @@ Running this file may take a couple of minutes and the resulting file will be sa
 
 ## Step 2: Evaluation
 
-The final trained models are provided in the `trained_models` folder. The final models are evaluated on the test set and performance is given in terms of AUC and AP. The optimal hyperparameters are provided in the `best_params.json` file and the optional_model part (when EHG data and clinical data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `evaluation.py` file. The name of your final model has to be specified in the `final_models.json` file. 
+The final trained models are provided in the `trained_models` folder. We performed nested cross-validation to obtain a more robust performance estimate. In total, there are 5 separate models, all trained on 1 of the 5 folds, for each model type (e.g. a TCN model using peak frequency as data reduction method on only EHG data is 1 model type), and there are 12 model types. The final models are evaluated on the test set of a specific fold and performance is given in terms of mean AUC and AP over the 5 folds. The optimal hyperparameters are provided in the `best_params.json` file and are based on the csv files which contain the results of the hyperoptimization runs in the `hyperparameter` folder. The optional_model part (when EHG data and clinical data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `evaluation.py` file. The name of your final models has to be specified in the `final_models.json` file. 
 
 Usage:
 
@@ -49,6 +49,20 @@ Usage:
   
   --feature_name {sample_entropy,peak_frequency,median_frequency}
                         Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or 'median_frequency'
+                        
+  --hyperoptimization_file_name   
+                        Name of the file with the results of the hyperoptimization run. The best params for each model are currently 
+                        already provided in the `best_params.json` file.
+                        
+  --n_folds             Number of outer folds used. Default is 5.
+  
+  --reduced_seq_length  The time window length of which you want to calculate feature_name on each time step. For example, if 
+                        reduced_seq_length is 50 and feature_name is sample entropy, then you'll end up with 50 values of the 
+                        sample entropy which are calculated over non-overlapping time windows from df_signals_new. Default is 50.
+                        
+  --sub_seq_length      The number of time steps you want to use to split reduced_seq_length into. For example, if 
+                        reduced_seq_length is 50 and sub_seq_length is 10, then you'll have 5 sub-sequences that make up the 
+                        total reduced_seq_length. A prediction will be made over each sub-sequence. Default is 10.
                         
   --add_static_data     Add static clinical data to the model. Use either the --add_static_data or the --no_static_data flag
   
@@ -66,17 +80,20 @@ Usage:
                         --no_copies_for_static_data flag. This flag or the --use_copies_for_static_data flag are only required
                         if the --add_static_data flag is used.
                         
+  --baseline            Calculate performance of logistic regression baseline on static data.
+  --no_baseline         Run normal evaluation. (This would be the default option)
+                        
 ```
 
-Example of how to evaluate the final model for TCN with peak frequency as method of data reduction, no static data added in the command line:
+Example of how to evaluate the final model for TCN with peak frequency as method of data reduction and no static data added in the command line:
 
 ```python
-python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data
+python ./src_pre_term_database/evaluation.py --model 'tcn' --feature_name 'peak_frequency' --hyperoptimization_file_name 'tcn_data_trials_feature_peak_frequency_2023-02-21_16-22.csv' --n_folds 5 --reduced_seq_length 50 --sub_seq_length 10 --no_static_data --no_baseline
 ```
 
 ## Step 3 (optional): Re-run hyperoptimization
 
-You can re-run hyperoptimization for all models. Hyperoptimization is based on Bayesian Optimization using the Optuna package. Hyperparameter spaces are defined in the following classes which are declared in the `optimization.py` file: 
+You can re-run hyperoptimization for all model types. Hyperoptimization is based on Bayesian Optimization using the Optuna package and is done using nested hyperoptimization. Hyperparameter spaces are defined in the following classes which are declared in the `optimization.py` file: 
 
 - `ObjectiveLSTMFeatureCombinedModel` (EHG data + static data)
 - `ObjectiveTcnFeatureCombinedModelWithCopies` (EHG data + static data treated as time series)
@@ -93,6 +110,14 @@ Usage of re-running hyperoptimization:
   
   --feature_name {sample_entropy,peak_frequency,median_frequency}
                         Select what feature to use for data reduction: 'sample_entropy', 'peak_frequency' or 'median_frequency'
+                        
+  --reduced_seq_length  The time window length of which you want to calculate feature_name on each time step. For example, if 
+                        reduced_seq_length is 50 and feature_name is sample entropy, then you'll end up with 50 values of the 
+                        sample entropy which are calculated over non-overlapping time windows from df_signals_new. Default is 50.
+                        
+  --sub_seq_length      The number of time steps you want to use to split reduced_seq_length into. For example, if 
+                        reduced_seq_length is 50 and sub_seq_length is 10, then you'll have 5 sub-sequences that make up the 
+                        total reduced_seq_length. A prediction will be made over each sub-sequence. Default is 10.
                         
   --add_static_data     Add static clinical data to the model. Use either the --add_static_data or the--no_static_data flag
   
@@ -124,21 +149,21 @@ Usage of re-running hyperoptimization:
   --n_trials N_TRIALS   Number of runs you want to do for hyperoptimization. Default is 50 runs.
 ```
 
-Example to do hyperoptimization for the TCN model, with peak frequency as method of data reduction, no static data and 100 runs over the hyperparameter space:
+Example how to do hyperoptimization for the TCN model, with peak frequency as method of data reduction, no static data and 100 runs over the hyperparameter space:
 
 ```python
-python ./src_pre_term_database/optimization.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data --new_study --n_trials 100
+python ./src_pre_term_database/optimization.py --model 'tcn' --feature_name 'peak_frequency' --reduced_seq_length 50 --sub_seq_length 10 --no_static_data --new_study --n_trials 100
 ```
 
 ## Step 4 (optional): Train final model using the optimal hyperparameters obtained in step 3
 
-You should hard-copy the optimal hyperparameters you've obtained in step 3 in the `best_params.json` file and the optional_model part (when EHG data and static data are combined) has to be put in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `final_train.py` file. 
+You should put the csv file with the results of the hyperparameters you've obtained in step 3 in the `hyperparameters` folder. The optional_model part (when EHG data and static data are combined) has to be hard copied in the `optional_model_dict` and `bidirectional_lstm_dict`, which are placed at the top of the `final_train.py` file. You'll also have to hard copy this in the evaluation.py file if you want to evaluate your final models.
 
-The final model will be saved in the `trained_models` folder. After running `final_train.py` you have to put the name of your final model in the `final_models.json` file and then you can run `evaluation.py` (see step 1 for explanation on usage) to evaluate your results.
+The final models will be saved in the `trained_models` folder and the best hyperparameters for each mofel type and fold will be saved in the `best_params.json` file. After running `final_train.py` you have to put the name of your final model in the `final_models.json` file and then you can run `evaluation.py` (see step 1 for explanation on usage) to evaluate your results.
 
 Example usage `final_train.py`:
 
 ```python
-python ./src_pre_term_database/final_train.py --model 'tcn' --feature_name 'peak_frequency' --no_static_data
+python ./src_pre_term_database/final_train.py --model 'tcn' --feature_name 'peak_frequency' --hyperoptimization_file_name 'tcn_data_trials_feature_peak_frequency_2023-02-21_16-22.csv' --n_folds 5 --reduced_seq_length 50 --sub_seq_length 10 --no_static_data
 ```
 
