@@ -4129,10 +4129,10 @@ class ObjectiveTcnFeatureModel(object):
         self.x_test_processed = x_test_processed
         self.y_train_processed = y_train_processed
         self.y_test_processed = y_test_processed
-        self.rec_ids_train_inner = rec_ids_train_inner # unique rec ids of x train inner loop
-        self.rec_ids_test_inner = rec_ids_test_inner # unique rec ids of x test inner loop
-        self.rec_ids_train_outer = rec_ids_train_outer # unique rec ids of x train outer loop
-        self.rec_ids_test_outer = rec_ids_test_outer # unique rec ids of x test outer loop
+        self.rec_ids_train_inner = rec_ids_train_inner  # unique rec ids of x train inner loop
+        self.rec_ids_test_inner = rec_ids_test_inner  # unique rec ids of x test inner loop
+        self.rec_ids_train_outer = rec_ids_train_outer  # unique rec ids of x train outer loop
+        self.rec_ids_test_outer = rec_ids_test_outer  # unique rec ids of x test outer loop
         self.pos_weight = pos_weight
         self.feature_name = feature_name
         self.num_sub_sequences = num_sub_sequences
